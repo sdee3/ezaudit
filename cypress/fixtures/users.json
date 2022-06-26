@@ -1,0 +1,26 @@
+[
+  {
+    "access_token": "123",
+    "user": {
+      "email": "test-user-1@test.com",
+      "id": "1",
+      "name": "Cypress User 1"
+    }
+  },
+  {
+    "access_token": "456",
+    "user": {
+      "email": "test-user-2@test.com",
+      "id": "2",
+      "name": "Cypress User 2"
+    }
+  },
+  {
+    "access_token": "789",
+    "user": {
+      "email": "test-user-3@test.com",
+      "id": "3",
+      "name": "Cypress User 3"
+    }
+  }
+]

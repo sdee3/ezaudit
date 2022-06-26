@@ -1,0 +1,99 @@
+{
+  "env": {
+    "browser": true,
+    "es6": true,
+    "jest": true
+  },
+  "rules": {
+    "@next/next/no-html-link-for-pages": ["error", "./client/pages/"],
+    "jsx-a11y/anchor-is-valid": "off",
+    "semi": ["error", "never"],
+    "quotes": ["error", "single"],
+    "react/prop-types": 0,
+    "react/display-name": 0,
+    "no-unused-vars": "off", // this needs to be off for the TS specific rule to work properly
+    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/no-unused-expressions": [
+      "error",
+      {
+        "allowShortCircuit": true,
+        "allowTernary": true
+      }
+    ],
+    "no-unused-expressions": "off",
+    "no-console": 2,
+    "react/jsx-key": "error",
+    "flowtype/require-valid-file-annotation": [0, "never"],
+    "import/prefer-default-export": 0,
+    "react/prefer-stateless-function": "error",
+    "react/jsx-filename-extension": [
+      "error",
+      { "extensions": [".ts", ".tsx"] }
+    ],
+    "react/jsx-curly-brace-presence": [
+      "error",
+      { "props": "never", "children": "never" }
+    ],
+    "import/extensions": "off",
+    "react/jsx-no-bind": [
+      "error",
+      {
+        "ignoreRefs": true,
+        "allowArrowFunctions": true
+      }
+    ],
+    "no-var": "error",
+    "import/order": [
+      "error",
+      {
+        "groups": [
+          ["builtin", "external"],
+          ["internal", "parent", "sibling", "index"]
+        ],
+        "newlines-between": "always"
+      }
+    ],
+    "react-hooks/rules-of-hooks": "warn",
+    "react-hooks/exhaustive-deps": "warn",
+    "no-useless-constructor": "off",
+    "@typescript-eslint/no-useless-constructor": "error",
+    "no-empty-function": "off", // Related to no-useless-constructor
+    "react/sort-comp": [
+      "error",
+      {
+        "order": [
+          "static-variables",
+          "static-methods",
+          "instance-variables",
+          "getters",
+          "lifecycle",
+          "everything-else",
+          "render"
+        ]
+      }
+    ],
+    "@typescript-eslint/no-redeclare": ["error"]
+  },
+  "extends": [
+    "react-app",
+    "eslint:recommended",
+    "plugin:react/recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:react-hooks/recommended",
+    "next/core-web-vitals"
+  ],
+  "root": true,
+  "plugins": ["react", "@typescript-eslint/eslint-plugin"],
+  "parserOptions": {
+    "ecmaVersion": 6,
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  },
+  "settings": {
+    "react": {
+      "pragma": "React",
+      "version": "detect"
+    }
+  }
+}
