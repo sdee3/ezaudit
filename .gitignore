@@ -48,7 +48,8 @@ build/Release
 .next/
 .vscode/
 node_modules/
-public/
+public/*
+!public/static/
 
 # Optional cache directories and files
 .npm

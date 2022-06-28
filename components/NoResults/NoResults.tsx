@@ -34,8 +34,8 @@ export const NoResults = ({ asError404 = false }: Props) => {
             alt="EZ Audit No Results Found"
             src={
               asError404
-                ? '/img/EZAudit-Not-Found.svg'
-                : '/img/EZAudit-Empty-State.svg'
+                ? '/static/img/EZAudit-Not-Found.svg'
+                : '/static/img/EZAudit-Empty-State.svg'
             }
             width="500"
             height="400"

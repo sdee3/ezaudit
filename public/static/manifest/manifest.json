@@ -1,0 +1,32 @@
+{
+  "background_color": "#ffffff",
+  "description": "Audit your website with EZ Audit - the next greatest revolutionary tool for auditing your online business",
+  "display": "standalone",
+  "icons": [
+    {
+      "sizes": "192x192",
+      "src": "/manifest/icon-192x192.png",
+      "type": "image/png"
+    },
+    {
+      "sizes": "256x256",
+      "src": "/manifest/icon-256x256.png",
+      "type": "image/png"
+    },
+    {
+      "sizes": "384x384",
+      "src": "/manifest/icon-384x384.png",
+      "type": "image/png"
+    },
+    {
+      "sizes": "512x512",
+      "src": "/manifest/icon-512x512.png",
+      "type": "image/png"
+    }
+  ],
+  "name": "EZ Audit",
+  "scope": "/",
+  "short_name": "EZ Audit",
+  "start_url": "/index.html",
+  "theme_color": "#2663D1"
+}

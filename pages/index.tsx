@@ -55,7 +55,7 @@ const HomePage: NextPage = () => {
               <Box width={{ sm: '80vw', md: 'container.sm' }}>
                 <Image
                   alt="EZ Audit Hero Cover"
-                  src="/img/EZAudit-Home-Futuristic.svg"
+                  src="/static/img/EZAudit-Home-Futuristic.svg"
                   width="800"
                   height="600"
                 />
