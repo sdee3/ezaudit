@@ -22,7 +22,7 @@ export const Navbar = () => {
                 <Flex alignItems="center" gap="4">
                   <Box boxSize="50px">
                     <Image
-                      src="/manifest/icon-192x192.png"
+                      src="/static/manifest/icon-192x192.png"
                       alt="EZ Audit logo"
                       width="100%"
                       height="100%"
