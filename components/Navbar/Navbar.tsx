@@ -17,22 +17,20 @@ export const Navbar = () => {
       <Container py="4" mb="10" shadow="md" maxW="100vw">
         <Box mx="2">
           <Flex alignItems="center" justifyContent="space-between">
-            <Link passHref href={ROUTES.home}>
-              <a>
-                <Flex alignItems="center" gap="4">
-                  <Box boxSize="50px">
-                    <Image
-                      src="/static/manifest/icon-192x192.png"
-                      alt="EZ Audit logo"
-                      width="100%"
-                      height="100%"
-                    />
-                  </Box>
-                  <Heading fontSize="2xl" textColor="gray.800">
-                    EZ Audit
-                  </Heading>
-                </Flex>
-              </a>
+            <Link href={ROUTES.home}>
+              <Flex alignItems="center" gap="4">
+                <Box boxSize="50px">
+                  <Image
+                    src="/static/manifest/icon-192x192.png"
+                    alt="EZ Audit logo"
+                    width={192}
+                    height={192}
+                  />
+                </Box>
+                <Heading fontSize="2xl" textColor="gray.800">
+                  EZ Audit
+                </Heading>
+              </Flex>
             </Link>
             <BiUserCircle
               data-cy="userDashboardBtn"
