@@ -26,8 +26,8 @@ const BREADCRUMB_LINKS: BreadcrumbLink[] = [
 ]
 
 const AuditsIndex = () => {
-  const [audits, setAudits] = useState<AuditResultParsed[] | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [audits] = useState<AuditResultParsed[] | null>(null)
+  const [isLoading] = useState(false)
 
   if (isLoading) return <Loading />
 
