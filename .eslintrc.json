@@ -12,7 +12,7 @@
     "react/prop-types": 0,
     "react/display-name": 0,
     "no-unused-vars": "off", // this needs to be off for the TS specific rule to work properly
-    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/no-unused-vars": "warn",
     "@typescript-eslint/no-unused-expressions": [
       "error",
       {

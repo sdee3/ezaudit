@@ -2,7 +2,6 @@ import Head from 'next/head'
 import { NextPage } from 'next/types'
 
 import { User } from '../../models'
-import { Dashboard } from '../../modules/Dashboard'
 import { getCookieFromReq } from '../../utils'
 
 interface Props {
@@ -15,7 +14,6 @@ const DashboardPage: NextPage<Props> = ({ user }: Props) => {
       <Head>
         <title>Your Dashboard | EZ Audit</title>
       </Head>
-      <Dashboard user={user} />
     </>
   )
 }

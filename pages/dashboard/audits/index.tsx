@@ -11,25 +11,12 @@ import {
   Tr,
 } from '@chakra-ui/react'
 import Link from 'next/link'
-import { useCallback, useContext, useEffect, useState } from 'react'
+import { useState } from 'react'
 import Head from 'next/head'
-import { useRouter } from 'next/router'
 
-import {
-  AuditResultFromAPI,
-  AuditResultParsed,
-  BreadcrumbLink,
-} from '../../../models'
-import { AuditResultCategories } from '../../../models/Audit'
-import { ROUTES, UNAUTHORIZED_STATUS_CODE } from '../../../utils'
-import {
-  Breadcrumbs,
-  Loading,
-  NoResults,
-  AuthWrapper,
-  AuthContext,
-} from '../../../components'
-import { useApi } from '../../../utils'
+import { AuditResultParsed, BreadcrumbLink } from '../../../models'
+import { ROUTES } from '../../../utils'
+import { Breadcrumbs, Loading, NoResults } from '../../../components'
 
 const BREADCRUMB_LINKS: BreadcrumbLink[] = [
   {
@@ -40,46 +27,9 @@ const BREADCRUMB_LINKS: BreadcrumbLink[] = [
 
 const AuditsIndex = () => {
   const [audits, setAudits] = useState<AuditResultParsed[] | null>(null)
-  const { fetchFromApi } = useApi()
-  const { user, clearUser } = useContext(AuthContext)
-  const { reload } = useRouter()
-
   const [isLoading, setIsLoading] = useState(false)
 
-  const fetchAudits = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      const { status, message } = await fetchFromApi('/api/audits', 'GET')
-
-      if (status === UNAUTHORIZED_STATUS_CODE) {
-        throw new Error()
-      }
-
-      const auditsParsed: AuditResultParsed[] = (
-        message as AuditResultFromAPI[]
-      ).map(r => ({
-        ...r,
-        audit_result: JSON.parse(r.audit_result) as AuditResultCategories,
-        is_public: r.is_public === 1,
-      }))
-
-      setAudits(auditsParsed)
-    } catch (err) {
-      if (audits?.length !== 0) setAudits([])
-      clearUser()
-      reload()
-    } finally {
-      setIsLoading(false)
-    }
-  }, [audits?.length, clearUser, fetchFromApi, reload])
-
-  useEffect(() => {
-    if (audits !== null) return
-    user && fetchAudits()
-  }, [audits, fetchAudits, user])
-
   if (isLoading) return <Loading />
-  if (!user) return <AuthWrapper />
 
   if (!audits || audits.length === 0) {
     return (

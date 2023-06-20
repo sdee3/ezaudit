@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { SubmitHandler, UseFormSetValue, UseFormTrigger } from 'react-hook-form'
 
-import { useApi } from '../../../utils'
 import { useLoading } from '../../Loading'
 import { ApiResponse, HomeAuditInputValues } from '../../../models'
 
@@ -13,7 +12,6 @@ const useInput = (
   const [apiResponseOutput, setApiResponseOutput] =
     useState<ApiResponse | null>(null)
   const { isLoading, setIsLoading } = useLoading()
-  const { fetchFromApi } = useApi()
 
   useEffect(() => {
     trigger()
@@ -28,13 +26,13 @@ const useInput = (
     async ({ domain, email }) => {
       try {
         setIsLoading(true)
-        const valueFromResponse: ApiResponse = await fetchFromApi(
-          '/api/audit',
-          'POST',
-          { domain, email }
+        const response = await fetch(
+          process.env.NEXT_PUBLIC_LIGHTHOUSE_CRAWL_ROUTE
         )
 
-        setApiResponseOutput(valueFromResponse)
+        const json = await response.json()
+
+        setApiResponseOutput(json)
       } catch {
         setIsLoading(false)
       } finally {
@@ -44,7 +42,7 @@ const useInput = (
         trigger()
       }
     },
-    [fetchFromApi, setFormFieldValue, setIsLoading, trigger]
+    [setFormFieldValue, setIsLoading, trigger]
   )
 
   return { isLoading, onSubmit, apiResponseOutput }
