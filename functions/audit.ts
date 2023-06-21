@@ -5,7 +5,6 @@ import lighthouse from 'lighthouse'
 
 export const handler = ApiHandler(async evt => {
   const executablePath = '/opt/homebrew/bin/chromium'
-  console.log(evt)
 
   const browser = await puppeteer.launch({
     args: [

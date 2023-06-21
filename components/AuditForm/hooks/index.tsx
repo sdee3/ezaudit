@@ -28,7 +28,6 @@ const useInput = (
         setIsLoading(true)
         await fetch('/api/audit')
       } catch (e) {
-        console.trace(e)
         setIsLoading(false)
       } finally {
         setIsLoading(false)
