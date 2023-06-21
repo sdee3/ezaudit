@@ -1,7 +1,19 @@
-export default async function handler(req, res) {
-  const results = await fetch(process.env.NEXT_PUBLIC_LIGHTHOUSE_CRAWL_ROUTE)
+import { NextApiHandler } from 'next'
+
+const handler: NextApiHandler = async (req, res) => {
+  const response = await fetch(process.env.NEXT_PUBLIC_LIGHTHOUSE_CRAWL_ROUTE, {
+    method: 'POST',
+    body: JSON.stringify({
+      url: req.body.url,
+      email: req.body.email,
+    }),
+  })
+
+  const json = await response.json()
 
   res.send({
-    data: await results.json(),
+    data: json,
   })
 }
+
+export default handler
