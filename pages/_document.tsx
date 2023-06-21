@@ -32,7 +32,7 @@ export default class MyDocument extends Document {
             <link
               rel="icon"
               type="image/x-icon"
-              href="//static/manifest/favicon.ico"
+              href="/static/manifest/favicon.ico"
             />
             <link
               rel="shortcut-icon"
