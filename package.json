@@ -3,10 +3,12 @@
     "@chakra-ui/react": "^2.7.1",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
+    "@sparticuz/chromium": "^114.0.0",
     "framer-motion": "^10.12.16",
     "lighthouse": "^10.3.0",
     "next": "^13.4.6",
     "next-http-proxy-middleware": "^1.2.5",
+    "puppeteer-core": "^20.7.3",
     "react": "^18.2.0",
     "react-cookie": "^4.1.1",
     "react-cookie-consent": "^8.0.1",
@@ -28,6 +30,8 @@
     "@types/styled-components": "^5.1.26",
     "@typescript-eslint/eslint-plugin": "^5.60.0",
     "@typescript-eslint/parser": "^5.60.0",
+    "aws-cdk-lib": "2.84.0",
+    "constructs": "10.1.156",
     "eslint": "^8.43.0",
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-next": "^13.4.6",
@@ -41,12 +45,15 @@
     "nock": "^13.3.1",
     "prettier": "^2.8.8",
     "react-is": "^18.2.0",
+    "sst": "^2.16.1",
     "typescript": "^5.1.3"
   },
   "proxy": "http://localhost:8000",
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "AWS_PROFILE=stefan sst bind next dev",
+    "sst:deploy": "AWS_PROFILE=stefan sst deploy --stage prod",
+    "sst:dev": "AWS_PROFILE=stefan sst dev",
     "lint": "next lint"
   }
 }

@@ -26,14 +26,9 @@ const useInput = (
     async ({ domain, email }) => {
       try {
         setIsLoading(true)
-        const response = await fetch(
-          process.env.NEXT_PUBLIC_LIGHTHOUSE_CRAWL_ROUTE
-        )
-
-        const json = await response.json()
-
-        setApiResponseOutput(json)
-      } catch {
+        await fetch('/api/audit')
+      } catch (e) {
+        console.trace(e)
         setIsLoading(false)
       } finally {
         setIsLoading(false)

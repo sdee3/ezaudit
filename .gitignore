@@ -57,3 +57,7 @@ public/*
 
 # dotenv environment variables file
 .env
+
+# SST
+layers/*
+.sst
