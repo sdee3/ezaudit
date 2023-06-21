@@ -29,11 +29,7 @@ export default class MyDocument extends Document {
             {initialProps.styles}
             <link rel="manifest" href="/static/manifest/manifest.json" />
             <meta name="theme-color" content="#2663D1" />
-            <link
-              rel="icon"
-              type="image/x-icon"
-              href="/static/manifest/favicon.ico"
-            />
+            <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
             <link
               rel="shortcut-icon"
               href="/static/manifest/icon-bordered.png"

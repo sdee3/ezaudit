@@ -5,22 +5,22 @@
   "icons": [
     {
       "sizes": "192x192",
-      "src": "/manifest/icon-192x192.png",
+      "src": "/static/manifest/icon-192x192.png",
       "type": "image/png"
     },
     {
       "sizes": "256x256",
-      "src": "/manifest/icon-256x256.png",
+      "src": "/static/manifest/icon-256x256.png",
       "type": "image/png"
     },
     {
       "sizes": "384x384",
-      "src": "/manifest/icon-384x384.png",
+      "src": "/static/manifest/icon-384x384.png",
       "type": "image/png"
     },
     {
       "sizes": "512x512",
-      "src": "/manifest/icon-512x512.png",
+      "src": "/static/manifest/icon-512x512.png",
       "type": "image/png"
     }
   ],
