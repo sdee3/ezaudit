@@ -1,0 +1,108 @@
+services:
+  # Laravel Backend
+  laravel:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ezaudit-laravel
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/var/www/html
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=ezaudit
+      - DB_USERNAME=ezaudit
+      - DB_PASSWORD=secret
+      - BROADCAST_DRIVER=pusher
+      - PUSHER_APP_ID=local
+      - PUSHER_APP_KEY=local
+      - PUSHER_APP_SECRET=local
+      - PUSHER_APP_CLUSTER=mt1
+      - QUEUE_CONNECTION=redis
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=null
+      - REDIS_PORT=6379
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - ezaudit-network
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: ezaudit-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=ezaudit
+      - MYSQL_USER=ezaudit
+      - MYSQL_PASSWORD=secret
+      - MYSQL_ROOT_PASSWORD=root
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - ezaudit-network
+
+  # Redis for Queues & Broadcasting
+  redis:
+    image: redis:7-alpine
+    container_name: ezaudit-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - ezaudit-network
+
+  # Queue Worker
+  queue:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ezaudit-queue
+    command: php artisan queue:work --tries=3 --timeout=90
+    volumes:
+      - ./backend:/var/www/html
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=ezaudit
+      - DB_USERNAME=ezaudit
+      - DB_PASSWORD=secret
+      - QUEUE_CONNECTION=redis
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=null
+      - REDIS_PORT=6379
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - ezaudit-network
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ezaudit-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://laravel:8000/api
+    depends_on:
+      - laravel
+    networks:
+      - ezaudit-network
+
+volumes:
+  mysql-data:
+
+networks:
+  ezaudit-network:
+    driver: bridge
