@@ -9,7 +9,6 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
-    wkhtmltopdf \
     libzip-dev \
     libfreetype6-dev \
     libjpeg62-turbo-dev \
@@ -21,6 +20,22 @@ RUN apt-get update && apt-get install -y \
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Install wkhtmltopdf (Bookworm packages removals workaround)
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        fontconfig \
+        libjpeg62-turbo \
+        libxrender1 \
+        libxext6 \
+        xfonts-75dpi \
+        xfonts-base; \
+    curl -L -o /tmp/wkhtmltox.deb https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.bookworm_amd64.deb; \
+    dpkg -i /tmp/wkhtmltox.deb; \
+    rm -f /tmp/wkhtmltox.deb; \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*
+
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
@@ -31,10 +46,10 @@ RUN a2enmod rewrite
 WORKDIR /var/www/html
 
 # Copy existing application directory contents
-COPY ./backend /var/www/html
+COPY . /var/www/html
 
 # Copy existing application directory permissions
-COPY --chown=www-data:www-data ./backend /var/www/html
+COPY --chown=www-data:www-data . /var/www/html
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-scripts

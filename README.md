@@ -203,6 +203,15 @@ npm run test
 4. View real-time updates in dashboard at <http://localhost:5173/dashboard>
 5. Download PDF when completed
 
+## Continuous Integration
+
+Two GitHub Actions workflows keep code quality high:
+
+- [`frontend-ci.yml`](.github/workflows/frontend-ci.yml): Installs Node 18, runs `npm ci`, then executes `npm run lint` and `npm run test` (if defined) inside the `frontend` directory.
+- [`backend-ci.yml`](.github/workflows/backend-ci.yml): Installs PHP 8.3, sets up a SQLite database, runs Pint via `./vendor/bin/pint --test`, and executes the Laravel test suite with `php artisan test`.
+
+Both workflows trigger on pushes, pull requests, and manual dispatches scoped to their respective subdirectories.
+
 ## Lighthouse Integration
 
 The `ProcessAuditJob` calls an external Lighthouse service. Update the `LIGHTHOUSE_URL` in backend `.env` to point to your Lighthouse API endpoint.
