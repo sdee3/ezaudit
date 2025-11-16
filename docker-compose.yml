@@ -26,8 +26,10 @@ services:
       - REDIS_PASSWORD=null
       - REDIS_PORT=6379
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - ezaudit-network
 
@@ -42,6 +44,16 @@ services:
       - MYSQL_USER=ezaudit
       - MYSQL_PASSWORD=secret
       - MYSQL_ROOT_PASSWORD=root
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -p$$MYSQL_ROOT_PASSWORD || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
     volumes:
       - mysql-data:/var/lib/mysql
     networks:
@@ -77,8 +89,10 @@ services:
       - REDIS_PASSWORD=null
       - REDIS_PORT=6379
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - ezaudit-network
 

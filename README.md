@@ -34,25 +34,29 @@ EZAudit is a web application that allows users to generate PDF performance repor
    cd ezaudit
    ```
 
-2. **Start services**:
+2. **Build images (only after Dockerfile changes such as wkhtmltopdf fixes)**:
 
    ```
-   docker-compose up -d
+   docker compose build laravel queue
    ```
 
-3. **Run migrations**:
+3. **Start services**:
 
    ```
-   docker-compose exec laravel php artisan migrate
+   docker compose up -d
    ```
 
-4. **Start queue worker** (in a new terminal):
+4. **Run migrations**:
 
    ```
-   docker-compose exec laravel php artisan queue:work
+   docker compose exec laravel php artisan migrate
    ```
 
-5. **Access the application**:
+   ```
+   docker compose exec laravel php artisan queue:work
+   ```
+
+8. **Access the application**:
    - Frontend: <http://localhost:5173>
    - Backend API: <http://localhost:8000/api>
    - phpMyAdmin (optional): <http://localhost:8080> (add to docker-compose if needed)

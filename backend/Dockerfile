@@ -1,5 +1,10 @@
 FROM php:8.3-apache
 
+ARG WKHTMLTOPDF_VERSION=0.12.6-1
+ARG WKHTMLTOPDF_DISTRO=buster
+ARG WKHTMLTOPDF_ARCH=amd64
+ARG WKHTMLTOPDF_PACKAGE=wkhtmltox_${WKHTMLTOPDF_VERSION}.${WKHTMLTOPDF_DISTRO}_${WKHTMLTOPDF_ARCH}.deb
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
@@ -30,9 +35,9 @@ RUN set -eux; \
         libxext6 \
         xfonts-75dpi \
         xfonts-base; \
-    curl -L -o /tmp/wkhtmltox.deb https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.bookworm_amd64.deb; \
-    dpkg -i /tmp/wkhtmltox.deb; \
-    rm -f /tmp/wkhtmltox.deb; \
+    curl -L --fail -o /tmp/${WKHTMLTOPDF_PACKAGE} https://github.com/wkhtmltopdf/packaging/releases/download/${WKHTMLTOPDF_VERSION}/${WKHTMLTOPDF_PACKAGE}; \
+    dpkg -i /tmp/${WKHTMLTOPDF_PACKAGE} || apt-get install -f -y; \
+    rm -f /tmp/${WKHTMLTOPDF_PACKAGE}; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/*
 
