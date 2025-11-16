@@ -50,6 +50,13 @@ RUN a2enmod rewrite
 # Set working directory
 WORKDIR /var/www/html
 
+# Copy entrypoint scripts first (as root)
+COPY docker-entrypoint.sh /usr/local/bin/
+COPY queue-entrypoint.sh /usr/local/bin/
+
+# Make entrypoint scripts executable
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh /usr/local/bin/queue-entrypoint.sh
+
 # Copy existing application directory contents
 COPY . /var/www/html
 
@@ -67,4 +74,5 @@ USER www-data
 
 EXPOSE 8000
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]

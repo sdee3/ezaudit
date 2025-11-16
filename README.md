@@ -22,44 +22,60 @@ EZAudit is a web application that allows users to generate PDF performance repor
 ## Prerequisites
 
 - Docker and Docker Compose
-- Node.js 18+ (for manual frontend setup)
+- Node.js 20+ (for manual frontend setup)
 - PHP 8.3+ and Composer (for manual backend setup)
 
 ## Quick Start with Docker
 
 1. **Clone the repository** (if not already):
 
-   ```
+   ```bash
    git clone <repo-url>
    cd ezaudit
    ```
 
-2. **Build images (only after Dockerfile changes such as wkhtmltopdf fixes)**:
+2. **Build and start services**:
 
-   ```
-   docker compose build laravel queue
-   ```
-
-3. **Start services**:
-
-   ```
-   docker compose up -d
+   ```bash
+   docker compose up -d --build
    ```
 
-4. **Run migrations**:
+   This will:
+   - Build all Docker images
+   - Start all containers (Laravel, MySQL, Redis, Queue Worker, Frontend)
+   - Automatically run Laravel setup (key generation, migrations, cache optimization)
+   - Start the queue worker in a separate container
 
-   ```
-   docker compose exec laravel php artisan migrate
-   ```
-
-   ```
-   docker compose exec laravel php artisan queue:work
-   ```
-
-8. **Access the application**:
+3. **Access the application**:
    - Frontend: <http://localhost:5173>
    - Backend API: <http://localhost:8000/api>
    - phpMyAdmin (optional): <http://localhost:8080> (add to docker-compose if needed)
+
+4. **View logs** (optional):
+
+   ```bash
+   # All services
+   docker compose logs -f
+   
+   # Specific service
+   docker compose logs -f laravel
+   docker compose logs -f queue
+   ```
+
+### What Happens Automatically
+
+The Laravel container automatically handles:
+
+- Application key generation (`php artisan key:generate`)
+- Database migrations (`php artisan migrate`)
+- Storage link creation (`php artisan storage:link`)
+- Configuration caching for optimal performance
+
+The queue worker runs in a separate container and automatically:
+
+- Waits for database and Redis to be ready
+- Processes queued audit jobs continuously
+- Restarts on failure
 
 ## Manual Setup (Without Docker)
 
@@ -211,7 +227,7 @@ npm run test
 
 Two GitHub Actions workflows keep code quality high:
 
-- [`frontend-ci.yml`](.github/workflows/frontend-ci.yml): Installs Node 22, runs `npm ci`, then executes `npm run lint` and `npm run test` (if defined) inside the `frontend` directory.
+- [`frontend-ci.yml`](.github/workflows/frontend-ci.yml): Installs Node 20, runs `npm ci`, then executes `npm run lint` and `npm run test` (if defined) inside the `frontend` directory.
 - [`backend-ci.yml`](.github/workflows/backend-ci.yml): Installs PHP 8.3, sets up a SQLite database, runs Pint via `./vendor/bin/pint --test`, and executes the Laravel test suite with `php artisan test`.
 
 Both workflows trigger on pushes, pull requests, and manual dispatches scoped to their respective subdirectories.
@@ -241,11 +257,13 @@ For production:
 
 ## Troubleshooting
 
-- **Queue not processing**: Ensure `php artisan queue:work` is running and Redis is connected.
+- **Queue not processing**: Check queue worker logs with `docker compose logs queue`. Ensure Redis is connected.
+- **"Secret is not set" error**: Restart Laravel container to regenerate APP_KEY: `docker compose restart laravel`
 - **Real-time updates not working**: Check Pusher credentials and broadcasting config. Verify channel authorization.
-- **PDF generation fails**: Ensure wkhtmltopdf is installed and Snappy config is correct.
+- **PDF generation fails**: Ensure wkhtmltopdf is installed correctly in the Docker image.
 - **CORS errors**: Laravel Sanctum is configured for API; ensure frontend domain is allowed.
-- **JWT issues**: Run `php artisan jwt:secret` if tokens are invalid.
+- **Database connection issues**: Wait for MySQL to be fully ready (health check). View logs: `docker compose logs mysql`
+- **Container won't start**: Rebuild images: `docker compose down && docker compose up -d --build`
 
 ## Contributing
 
