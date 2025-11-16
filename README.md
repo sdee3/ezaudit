@@ -207,7 +207,7 @@ npm run test
 
 Two GitHub Actions workflows keep code quality high:
 
-- [`frontend-ci.yml`](.github/workflows/frontend-ci.yml): Installs Node 18, runs `npm ci`, then executes `npm run lint` and `npm run test` (if defined) inside the `frontend` directory.
+- [`frontend-ci.yml`](.github/workflows/frontend-ci.yml): Installs Node 22, runs `npm ci`, then executes `npm run lint` and `npm run test` (if defined) inside the `frontend` directory.
 - [`backend-ci.yml`](.github/workflows/backend-ci.yml): Installs PHP 8.3, sets up a SQLite database, runs Pint via `./vendor/bin/pint --test`, and executes the Laravel test suite with `php artisan test`.
 
 Both workflows trigger on pushes, pull requests, and manual dispatches scoped to their respective subdirectories.
