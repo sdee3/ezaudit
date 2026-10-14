@@ -57,6 +57,41 @@ export default defineConfig(({ mode }) => {
         },
       }),
     ],
+    build: {
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              {
+                name: 'react',
+                test: /node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/,
+                priority: 20,
+              },
+              {
+                name: 'chakra',
+                test: /node_modules[\\/](@chakra-ui|@emotion|framer-motion)[\\/]/,
+                priority: 15,
+              },
+              {
+                name: 'clerk',
+                test: /node_modules[\\/]@clerk[\\/]/,
+                priority: 15,
+              },
+              {
+                name: 'convex',
+                test: /node_modules[\\/]convex[\\/]/,
+                priority: 15,
+              },
+              {
+                name: 'vendor',
+                test: /node_modules[\\/]/,
+                priority: 10,
+              },
+            ],
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         'convex/_generated/api': path.resolve(
