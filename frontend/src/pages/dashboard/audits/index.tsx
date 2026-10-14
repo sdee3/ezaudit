@@ -25,7 +25,7 @@ import {
   Breadcrumbs,
   Loading,
   NoResults,
-  AuthWrapper,
+  RequireSignIn,
   AuthContext,
 } from '../../../components'
 import { Head } from '../../../head'
@@ -48,7 +48,7 @@ const AuditsIndex = () => {
   // Reactive subscription: the table updates live as audits progress.
   const audits = useQuery(api.audits.listMine, user ? {} : 'skip')
 
-  if (!user) return <AuthWrapper />
+  if (!user) return <RequireSignIn />
   if (audits === undefined) return <Loading />
 
   if (audits.length === 0) {

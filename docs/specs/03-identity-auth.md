@@ -48,15 +48,31 @@ React is pinned to 18.3 for Chakra v2. That constrains the Clerk SDK:
 
 | Route | Auth | Behavior |
 |---|---|---|
-| any protected route (`/dashboard*`) | signed-out | render `AuthWrapper` (unchanged UI) whose primary action redirects to the hub |
-| `/sso-callback` | guest | consume `?token=`, `signIn.create({ strategy: "ticket" })`, `setActive`, strip the param, then navigate to the intended route |
-| signed-in visit to `/dashboard` | signed-in | existing `Dashboard` UI |
+| any protected route (`/dashboard*`) | signed-out | `RequireSignIn` redirects to `/sign-in`, remembering the deep link in sessionStorage (location.state does not survive the external hub detour) |
+| `/sign-in` | guest (guarded) | dedicated sign-in page — signed-out users see a "Continue to sign in" action that redirects to the hub; signed-in users bounce to `/dashboard` |
+| `/sso-callback` | guest | consume `?token=` / `?__clerk_ticket=`, `signIn.create({ strategy: "ticket" })`, `setActive`, strip the param, then navigate to the remembered deep link; expired/invalid tickets show an explicit error with a retry path |
+| signed-in visit to `/dashboard` | signed-in | existing `Dashboard` UI (no full-page reload) |
 
-The **UI is unchanged**: `AuthWrapper` and the tabbed sign-in/register/reset forms stay.
-`data-cy` hooks are not carried forward. Only the submit action of `SignInForm` becomes
-"continue with SDEE3 Identity" (`window.location.assign(buildHubSignInUrl(...))`);
-`RegisterForm` / `ResetPasswordForm` remain for compatibility and delegate to the hub
-where identity management is out of scope.
+**Update (astro-mate session-guard approach):** the inline `AuthWrapper` sign-in forms are
+gone; sign-in lives on a single `/sign-in` page. Authentication mounts behind a
+`ConvexSessionGuard` (`frontend/src/components/ConvexSessionGuard/`) exactly as
+astro-mate does:
+
+- Authenticated UI renders only after Clerk and Convex auth agree, so Convex queries
+  never crash with "Not authenticated" during the token exchange.
+- Public routes (`/`, `/terms-and-conditions`, `/sign-in`, `/sso-callback`, unknown
+  catch-all paths — see `frontend/src/utils/publicRoutes.ts`) render immediately and
+  never wait on the Clerk CDN; a returning signed-in visitor gets a "Connecting…"
+  overlay instead of a flash of signed-out content (localStorage `had-session` flag).
+- After a tab sleep/device lock, the Convex JWT is proactively refreshed on
+  `visibilitychange`/`focus` (`useClerkConvexTokenRefresh`).
+- If Clerk shows a session but Convex rejects it, the guard retries once with a
+  cache-bypassed token, then signs out after an 8s grace period instead of leaving a
+  broken UI; a top-level `ErrorBoundary` routes any surviving "Not authenticated"
+  query error through `AuthRecoveryFallback` (local sign-out → `/sign-in`).
+- `RegisterForm` / `ResetPasswordForm` are deleted from the sign-in surface (the hub
+  owns registration and credentials); `ResetPasswordForm` survives only for the
+  legacy shared-audit email-token flow.
 
 ### Provider composition
 

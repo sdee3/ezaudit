@@ -9,7 +9,7 @@ import type { Id } from 'convex/_generated/dataModel'
 import {
   AuditResult,
   AuthContext,
-  AuthWrapper,
+  RequireSignIn,
   Breadcrumbs,
   Loading,
   NoResults,
@@ -108,7 +108,7 @@ const AuditByIdOverview = () => {
   }, [navigate, user, emailToken, auditId])
 
   if (id && audit === undefined && !parsedEmail) return <Loading />
-  if (!user && !parsedEmail && !audit?.is_public) return <AuthWrapper />
+  if (!user && !parsedEmail && !audit?.is_public) return <RequireSignIn />
   if (!audit && !parsedEmail) return <NoResults asError404 />
 
   return (

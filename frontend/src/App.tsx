@@ -5,6 +5,7 @@ import { Link, Route, Routes } from 'react-router-dom'
 
 import { Layout, NoResults, useAuthContext } from './components'
 import { SsoCallback } from './components/Auth/components'
+import SignInPage from './pages/dashboard/sign-in'
 import { usePrintContext } from './modules/Print'
 import AuditsIndex from './pages/dashboard/audits'
 import AuditByIdOverview from './pages/dashboard/audits/AuditById'
@@ -34,6 +35,7 @@ export function App() {
                   element={<TermsConditions />}
                 />
                 <Route path={ROUTES.ssoCallback} element={<SsoCallback />} />
+                <Route path={ROUTES.signIn} element={<SignInPage />} />
                 <Route path={ROUTES.dashboard} element={<DashboardPage />} />
                 <Route path={ROUTES.userAudits} element={<AuditsIndex />} />
                 <Route

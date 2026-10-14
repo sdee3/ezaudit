@@ -1,4 +1,2 @@
-import { AuthWrapper } from './AuthWrapper'
-
-export { AuthWrapper }
+export * from './components'
 export * from './hooks'

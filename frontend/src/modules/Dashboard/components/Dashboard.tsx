@@ -1,8 +1,8 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback } from 'react'
 import { Box, Button, Container, Heading, Text } from '@chakra-ui/react'
 import { useNavigate } from 'react-router-dom'
 
-import { AuthWrapper, useAuth } from '../../../components'
+import { RequireSignIn, useAuth } from '../../../components'
 import { ROUTES } from '../../../utils'
 import { User } from '../../../models'
 
@@ -11,24 +11,16 @@ interface Props {
 }
 
 export const Dashboard = ({ user }: Props) => {
-  const { user: userFromContext, clearUser } = useAuth()
+  const { clearUser } = useAuth()
   const navigate = useNavigate()
 
   const logout = useCallback(() => {
     clearUser()
   }, [clearUser])
 
-  useEffect(() => {
-    if (!userFromContext) return
-    if (!!userFromContext && !user) window.location.reload()
-  }, [userFromContext, user])
-
-  if (!user && !userFromContext)
-    return (
-      <Container maxW="container.xl">
-        <AuthWrapper />
-      </Container>
-    )
+  // The session guard holds authenticated mounting until Clerk/Convex agree,
+  // so null here means genuinely signed out.
+  if (!user) return <RequireSignIn />
 
   return (
     <Container maxW="container.xl">

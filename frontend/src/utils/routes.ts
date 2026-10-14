@@ -2,6 +2,7 @@ import { IncomingMessage } from 'http'
 
 export const ROUTES = {
   home: '/',
+  signIn: '/sign-in',
   ssoCallback: '/sso-callback',
   dashboard: '/dashboard',
   userAudits: '/dashboard/audits',
