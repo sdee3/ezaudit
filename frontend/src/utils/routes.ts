@@ -2,6 +2,7 @@ import { IncomingMessage } from 'http'
 
 export const ROUTES = {
   home: '/',
+  ssoCallback: '/sso-callback',
   dashboard: '/dashboard',
   userAudits: '/dashboard/audits',
   audit: (auditId: string) => `/dashboard/audits/${auditId}`,

@@ -9,13 +9,14 @@ import {
   Stack,
   Text,
 } from '@chakra-ui/react'
-import { useCallback, useContext, useMemo } from 'react'
-import { SubmitHandler, useForm } from 'react-hook-form'
+import { useCallback, useContext } from 'react'
+import { useForm } from 'react-hook-form'
 
 import { Alert } from '../../Alert'
 import { ResetPasswordInputValues } from '../../../models'
 import { EMAIL_REGEX_PATTERN } from '../../../utils'
 import useAlert from '../../Alert/hooks'
+import { buildIdentityAccountUrl } from '../../../lib/identity'
 import { AuthContext } from '..'
 
 interface Props {
@@ -42,22 +43,11 @@ export const ResetPasswordForm = ({ email, showFormOnly = false }: Props) => {
 
   const passwordWatchers = watch(['password', 'password_confirmation'])
 
-  const isSubmitDisabled = useMemo(
-    () => !!errors?.password || !!errors?.password_confirmation || !isValid,
-    [errors?.password, errors?.password_confirmation, isValid]
-  )
-
-  const isSubmitPassResetDisabled = useMemo(
-    () => !!errors?.emailForReset && !isValid,
-    [errors?.emailForReset, isValid]
-  )
-
-  const onSubmit: SubmitHandler<ResetPasswordInputValues> = useCallback(
-    async () => {
-      // Presentational in this wave: the password is not stored and no API is called.
-    },
-    []
-  )
+  const continueWithIdentity = useCallback(() => {
+    // SDEE3 Identity owns passwords: delegate to the hub account/home
+    // (docs/specs/03-identity-auth.md).
+    window.location.assign(buildIdentityAccountUrl())
+  }, [])
 
   const { message, state } = alertMessage
 
@@ -84,7 +74,7 @@ export const ResetPasswordForm = ({ email, showFormOnly = false }: Props) => {
             </Text>
           </Stack>
           <Box rounded="lg" boxShadow="lg" p={8}>
-            <form onSubmit={() => handleSubmit(onSubmit)}>
+            <form onSubmit={() => handleSubmit(continueWithIdentity)}>
               <Stack spacing={4}>
                 <FormControl id="emailForReset">
                   <FormLabel>Email</FormLabel>
@@ -105,8 +95,7 @@ export const ResetPasswordForm = ({ email, showFormOnly = false }: Props) => {
                     _hover={{
                       bg: 'blue.500',
                     }}
-                    isDisabled={isSubmitPassResetDisabled}
-                    onClick={handleSubmit(onSubmit)}
+                    onClick={continueWithIdentity}
                   >
                     Submit
                   </Button>
@@ -133,7 +122,7 @@ export const ResetPasswordForm = ({ email, showFormOnly = false }: Props) => {
           </Stack>
           <Box rounded="lg" boxShadow="lg" p={8}>
             {email && (
-              <form onSubmit={() => handleSubmit(onSubmit)}>
+              <form onSubmit={() => handleSubmit(continueWithIdentity)}>
                 <Stack spacing={4}>
                   <FormControl id="password">
                     <FormLabel>Password</FormLabel>
@@ -166,8 +155,7 @@ export const ResetPasswordForm = ({ email, showFormOnly = false }: Props) => {
                       _hover={{
                         bg: 'blue.500',
                       }}
-                      isDisabled={isSubmitDisabled}
-                      onClick={handleSubmit(onSubmit)}
+                      onClick={continueWithIdentity}
                     >
                       Submit
                     </Button>

@@ -9,14 +9,15 @@ import {
   Stack,
   useColorModeValue,
 } from '@chakra-ui/react'
-import { useCallback, useEffect, useMemo } from 'react'
-import { SubmitHandler, useForm } from 'react-hook-form'
+import { useCallback, useEffect } from 'react'
+import { useForm } from 'react-hook-form'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { Alert } from '../../Alert'
 import { SignInInputValues } from '../../../models'
 import { EMAIL_REGEX_PATTERN, ROUTES } from '../../../utils'
 import useAlert from '../../Alert/hooks'
+import { buildIdentitySignInUrl } from '../../../lib/identity'
 
 interface Props {
   isNewlyRegistered: boolean
@@ -34,11 +35,6 @@ export const SignInForm = ({ isNewlyRegistered }: Props) => {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { alertMessage, setAlertMessage, onAlertClose } = useAlert()
-
-  const isSubmitDisabled = useMemo(
-    () => !!errors?.email || !!errors?.password || !isValid,
-    [errors?.email, errors?.password, isValid]
-  )
 
   useEffect(() => {
     // query.pc indicates that a 'P'assword had just been 'C'hanged.
@@ -61,8 +57,10 @@ export const SignInForm = ({ isNewlyRegistered }: Props) => {
     })
   }, [isNewlyRegistered, setAlertMessage, searchParams, navigate])
 
-  const onSubmit: SubmitHandler<SignInInputValues> = useCallback(async () => {
-    // Presentational in this wave: the password is not stored and no API is called.
+  const continueWithIdentity = useCallback(() => {
+    // SDEE3 Identity owns credentials: the hub mints the session and returns to
+    // /sso-callback with a sign-in token (docs/specs/03-identity-auth.md).
+    window.location.assign(buildIdentitySignInUrl(window.location.origin))
   }, [])
 
   const { message, state } = alertMessage
@@ -88,7 +86,7 @@ export const SignInForm = ({ isNewlyRegistered }: Props) => {
           boxShadow="lg"
           p={8}
         >
-          <form onSubmit={() => handleSubmit(onSubmit)}>
+          <form onSubmit={() => handleSubmit(continueWithIdentity)}>
             <Stack spacing={4}>
               <FormControl id="email">
                 <FormLabel>Email address</FormLabel>
@@ -118,10 +116,9 @@ export const SignInForm = ({ isNewlyRegistered }: Props) => {
                   _hover={{
                     bg: 'blue.500',
                   }}
-                  isDisabled={isSubmitDisabled}
-                  onClick={handleSubmit(onSubmit)}
+                  onClick={continueWithIdentity}
                 >
-                  Sign in
+                  Continue with SDEE3 Identity
                 </Button>
               </Stack>
             </Stack>

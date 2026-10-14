@@ -9,13 +9,14 @@ import {
   Stack,
   useColorModeValue,
 } from '@chakra-ui/react'
-import { useCallback, useMemo } from 'react'
-import { SubmitHandler, useForm } from 'react-hook-form'
+import { useCallback } from 'react'
+import { useForm } from 'react-hook-form'
 
 import { Alert } from '../../Alert'
 import { RegisterInputValues } from '../../../models'
 import { EMAIL_REGEX_PATTERN } from '../../../utils'
 import useAlert from '../../Alert/hooks'
+import { buildIdentitySignUpUrl } from '../../../lib/identity'
 
 interface Props {
   switchToLoginAfterRegistering: () => void
@@ -33,19 +34,12 @@ export const RegisterForm = ({ switchToLoginAfterRegistering }: Props) => {
   })
   const { alertMessage, setAlertMessage, onAlertClose } = useAlert()
 
-  const isSubmitDisabled = useMemo(
-    () =>
-      !!errors?.email ||
-      !!errors?.password ||
-      !!errors?.password_confirmation ||
-      !isValid,
-    [errors?.email, errors?.password, errors?.password_confirmation, isValid]
-  )
-
   const passwordWatchers = watch(['password', 'password_confirmation'])
 
-  const onSubmit: SubmitHandler<RegisterInputValues> = useCallback(async () => {
-    // Presentational in this wave: the password is not stored and no API is called.
+  const continueWithIdentity = useCallback(() => {
+    // SDEE3 Identity owns registration: delegate to the hub sign-up
+    // (docs/specs/03-identity-auth.md).
+    window.location.assign(buildIdentitySignUpUrl(window.location.origin))
   }, [])
 
   const { message, state } = alertMessage
@@ -71,7 +65,7 @@ export const RegisterForm = ({ switchToLoginAfterRegistering }: Props) => {
           boxShadow="lg"
           p={8}
         >
-          <form onSubmit={() => handleSubmit(onSubmit)}>
+          <form onSubmit={() => handleSubmit(continueWithIdentity)}>
             <Stack spacing={4}>
               <FormControl id="email">
                 <FormLabel>Email address</FormLabel>
@@ -116,8 +110,7 @@ export const RegisterForm = ({ switchToLoginAfterRegistering }: Props) => {
                   _hover={{
                     bg: 'blue.500',
                   }}
-                  isDisabled={isSubmitDisabled}
-                  onClick={handleSubmit(onSubmit)}
+                  onClick={continueWithIdentity}
                 >
                   Register
                 </Button>

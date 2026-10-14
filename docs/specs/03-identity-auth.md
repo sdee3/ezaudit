@@ -40,6 +40,9 @@ React is pinned to 18.3 for Chakra v2. That constrains the Clerk SDK:
   decision below).
 - Validate the exact SDK version with a one-day spike before implementation; record the
   pinned version here.
+- **Recorded pinned version: `@clerk/react@6.17.8`** — `npm view @clerk/react@6.17.8
+  peerDependencies` returns `react: "^18.0.0 || ~19.0.3 || …"`, so it installs under
+  the React 18.3.1 pin (operator decision over the v5 recommendation above).
 
 ### Routes and flow
 
