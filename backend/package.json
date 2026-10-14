@@ -7,14 +7,18 @@
     "deploy": "convex deploy",
     "deploy:prod": "convex deploy --prod",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "lint": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "convex": "^1.46.0"
   },
   "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
+    "@types/node": "^26.6.5",
+    "convex-test": "^0.0.61",
     "typescript": "~5.9.3",
+    "vite": "^8.3.4",
     "vitest": "^5.0.4"
   }
 }

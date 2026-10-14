@@ -14,10 +14,10 @@ dashboard.
 
 | Env | `CONVEX_DEPLOYMENT` | Convex URL (frontend) | Key source |
 |---|---|---|---|
-| dev | `dev:<ezaudit-dev-ref>` | `https://<ezaudit-dev>.convex.cloud` | `backend/.env.local` |
+| dev | `dev:bold-orca-397` (project `stefan-djokic:ezaudit-91edc`) | `https://bold-orca-397.convex.cloud` | `backend/.env.local` |
 | prod | `prod:<ezaudit-prod-ref>` | `https://<ezaudit-prod>.convex.cloud` | `backend/.env.production` |
 
-The actual refs are created by `../infrastructure/convex` and filled in here once known.
+> Dev was provisioned with `npx convex project create ezaudit` + `npx convex dev --configure new --team stefan-djokic --project ezaudit --dev-deployment cloud` (the CLI auto-suffixed the project to `ezaudit-91edc`; the empty `ezaudit` project shell can be deleted from the dashboard). `CLERK_JWT_ISSUER_DOMAIN` is set on the dev deployment (`https://winning-jaybird-28.clerk.accounts.dev`, derived from the shared Clerk dev publishable key).
 
 ## Root scripts
 

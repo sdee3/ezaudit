@@ -127,13 +127,13 @@ pieces. Record the fork path and the sync burden in this spec before doing it.
 
 | # | Repo / file | Change | Tag |
 |---|---|---|---|
-| 1 | `identity/shared/redirectValidation.ts` | add `"ezaudit"` to `APP_SLUGS`; add `APP_HOME_URLS.ezaudit`; add `APP_REDIRECT_ALLOWLIST.ezaudit` (dev `http://localhost:5173` + `https://ezaudit.sdee3.com`); add `|| app === "ezaudit"` to `needsSignInTokenHandoff` | [code] |
-| 2 | `identity/convex/schema.ts` | add `v.literal("ezaudit")` to `appSlugValidator` and the `AppSlug` type | [code] |
-| 3 | `identity/convex/credits/httpHandlers.ts` | only if credits adopted: `ezaudit: "CREDITS_SERVICE_SECRET_EZAUDIT"` + slug unions | [code] |
-| 4 | `identity/packages/credits/src/types.ts` | only if credits adopted: add slug to `AppSlug`; rebuild package | [code] |
-| 5 | Clerk dashboard | FAPI subdomain allowlist += `ezaudit`; allowed redirect origins += `https://ezaudit.sdee3.com`; confirm `convex` JWT template + shared `/clerk-webhook` | [human-dashboard] |
-| 6 | identity Convex env | only if credits adopted: `CREDITS_SERVICE_SECRET_EZAUDIT` | [human-dashboard] |
-| 7 | identity deploy | run `./scripts/deploy-frontend.sh` so the updated allowlist ships | [code] |
+| 1 | `identity/shared/redirectValidation.ts` | add `"ezaudit"` to `APP_SLUGS`; add `APP_HOME_URLS.ezaudit`; add `APP_REDIRECT_ALLOWLIST.ezaudit` (dev `http://localhost:5173` + `https://ezaudit.sdee3.com`); add `|| app === "ezaudit"` to `needsSignInTokenHandoff` | [x] done (identity `9acdb7c`, pushed 2026-xx) |
+| 2 | `identity/convex/schema.ts` | add `v.literal("ezaudit")` to `appSlugValidator` and the `AppSlug` type | [x] done (same commit) |
+| 3 | `identity/convex/credits/httpHandlers.ts` | only if credits adopted: `ezaudit: "CREDITS_SERVICE_SECRET_EZAUDIT"` + slug unions | [x] done defensively — env key present but stays unset (auth-only adoption); required by the `Record<AppSlug, …>` type once the slug exists |
+| 4 | `identity/packages/credits/src/types.ts` | only if credits adopted: add slug to `AppSlug`; rebuild package | [ ] not applicable |
+| 5 | Clerk dashboard | FAPI subdomain allowlist += `ezaudit`; allowed redirect origins += `https://ezaudit.sdee3.com`; confirm `convex` JWT template + shared `/clerk-webhook` | [human-dashboard] pending |
+| 6 | identity Convex env | only if credits adopted: `CREDITS_SERVICE_SECRET_EZAUDIT` | [ ] not applicable |
+| 7 | identity deploy | run `./scripts/deploy-frontend.sh` so the updated allowlist ships; also `npx convex deploy` from the identity repo so the schema change reaches its deployment | [ ] pending |
 
 ## Acceptance criteria
 
