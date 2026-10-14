@@ -27,6 +27,7 @@ export const SignInForm = ({ isNewlyRegistered }: Props) => {
   const {
     register,
     handleSubmit,
+    getValues,
     formState: { isValid, errors },
   } = useForm<SignInInputValues>({
     mode: 'onChange',
@@ -57,11 +58,15 @@ export const SignInForm = ({ isNewlyRegistered }: Props) => {
     })
   }, [isNewlyRegistered, setAlertMessage, searchParams, navigate])
 
-  const continueWithIdentity = useCallback(() => {
+  const continueWithIdentity = useCallback(async () => {
     // SDEE3 Identity owns credentials: the hub mints the session and returns to
     // /sso-callback with a sign-in token (docs/specs/03-identity-auth.md).
-    window.location.assign(buildIdentitySignInUrl(window.location.origin))
-  }, [])
+    // The typed email is forwarded so the hub pre-fills its real credentials
+    // step — the fields here are presentational for UI parity.
+    window.location.assign(
+      buildIdentitySignInUrl(window.location.origin, '/sso-callback', getValues('email'))
+    )
+  }, [getValues])
 
   const { message, state } = alertMessage
 

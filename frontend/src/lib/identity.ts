@@ -22,10 +22,13 @@ const DEFAULT_HUB_SIGN_UP_URL = `${DEFAULT_HUB_ORIGIN}/sign-up`
  */
 export const buildIdentitySignInUrl = (
   appOrigin: string,
-  _redirectPath = '/sso-callback'
+  _redirectPath = '/sso-callback',
+  /** Optional prefill for the hub's credentials step (?email=). */
+  initialEmail?: string
 ): string => buildHubSignInUrlEndpoint(
   import.meta.env.VITE_CLERK_SIGN_IN_URL || DEFAULT_HUB_SIGN_IN_URL,
-  appOrigin
+  appOrigin,
+  initialEmail
 )
 
 /** Redirection URL for the hub's sign-up form. */
@@ -45,10 +48,15 @@ function hubSignInEndpoint(): string {
   return import.meta.env.VITE_CLERK_SIGN_IN_URL || DEFAULT_HUB_SIGN_IN_URL
 }
 
-function buildHubSignInUrlEndpoint(endpoint: string, appOrigin: string) {
+function buildHubSignInUrlEndpoint(
+  endpoint: string,
+  appOrigin: string,
+  initialEmail?: string
+) {
   const hub = new URL(endpoint)
   hub.searchParams.set('app', APP_SLUG)
   hub.searchParams.set('redirect_url', `${appOrigin}/sso-callback`)
+  if (initialEmail) hub.searchParams.set('email', initialEmail)
   return hub.toString()
 }
 
