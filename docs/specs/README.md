@@ -17,7 +17,7 @@ A `catalog` spec is a gap analysis, not agreed work.
 
 | Area | Decision | Rationale |
 |------|----------|-----------|
-| **UI source of truth** | git `702d652` — *"Fix attempt for the image loading (#1)"*, 2022-06-28 | Last revision containing both the full Chakra UI and Cypress. Screenshots archived in `ezaudit-revive-702/screenshots/`. |
+| **UI source of truth** | git `702d652` — *"Fix attempt for the image loading (#1)"*, 2022-06-28 | Last revision containing the full Chakra UI. Screenshots archived in `ezaudit-revive-702/screenshots/`. Cypress from that revision is not ported. |
 | **React** | **18.3.x, pinned** | Chakra UI v2 + Emotion need React 18. Pinning is what guarantees the exact UI; do **not** upgrade to 19 as part of this conversion. |
 | **UI library** | Chakra UI **v2** + Emotion + `react-icons` | The cherished UI. No Chakra v3 rewrite. |
 | **Build** | Vite (current major) + TypeScript (strict) | Matches `../astro-mate` and `../identity`. |
@@ -51,12 +51,12 @@ ezaudit/
 | Spec | Topic | Status |
 |------|-------|--------|
 | [01-target-architecture](./01-target-architecture.md) | Repo layout, stack pins, frontend/backend isolation | `planned` |
-| [02-ui-parity](./02-ui-parity.md) | Route/component/theme/asset inventory and pixel-parity gate | `planned` |
+| [02-ui-parity](./02-ui-parity.md) | Route/component/theme/asset inventory | `planned` |
 | [03-identity-auth](./03-identity-auth.md) | SDEE3 Identity hub integration, Clerk + Convex JWT, onboarding checklist | `planned` |
 | [04-backend-convex](./04-backend-convex.md) | Convex schema + functions replacing the Laravel backend | `planned` |
 | [05-deploy-frontend](./05-deploy-frontend.md) | `scripts/deploy-frontend.sh`, S3/CloudFront, security headers | `planned` |
 | [06-convex-dev-prod](./06-convex-dev-prod.md) | Convex DEV and PROD deployments, keys, env sync | `planned` |
-| [07-testing-and-ci](./07-testing-and-ci.md) | Vitest + Playwright, Cypress migration, CI checks | `planned` |
+| [07-testing-and-ci](./07-testing-and-ci.md) | Vitest for frontend and backend; Cypress removed; CI checks | `planned` |
 | [08-migration-plan](./08-migration-plan.md) | Phased conversion with acceptance gates and risks | `planned` |
 
 ## Decisions

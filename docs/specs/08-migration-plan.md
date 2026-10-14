@@ -15,17 +15,17 @@ it is `../astro-mate`, `../identity`, and `../infrastructure`.
 |---|---|---|
 | 0 — Archive | `702d652` worktree + screenshots + recon reports | UI baseline reproducible at `:3100` |
 | 1 — Scaffold | pnpm workspace, `frontend/` + `backend/` skeletons, env examples | `pnpm install && pnpm build` on a fresh clone |
-| 2 — UI port | All routes/components on Vite + React 18 + Chakra v2 + React Router | [02](./02-ui-parity.md) pixel-parity gate passes |
+| 2 — UI port | All routes/components on Vite + React 18 + Chakra v2 + React Router | [02](./02-ui-parity.md) port checklist passes |
 | 3 — Auth | SDEE3 Identity hub SSO + Convex JWT | [03](./03-identity-auth.md) acceptance passes |
 | 4 — Backend | Convex schema, functions, audit pipeline | [04](./04-backend-convex.md) acceptance passes |
 | 5 — Infra + deploy | `aws/ezaudit` stack, `scripts/deploy-frontend.sh` | [05](./05-deploy-frontend.md) acceptance passes |
 | 6 — Convex dev/prod | Dev + prod deployments, key plumbing | [06](./06-convex-dev-prod.md) acceptance passes |
-| 7 — Tests + CI | Vitest, Playwright, parity gate, CI workflow | [07](./07-testing-and-ci.md) acceptance passes |
+| 7 — Tests + CI | Vitest for frontend and backend, CI workflow | [07](./07-testing-and-ci.md) acceptance passes |
 | 8 — Cutover | Production deploy, Laravel decommission | Prod smoke + rollback plan |
 
 ## Phase 0 — Archive (done)
 
-- [x] Identified `702d652` as the last Cypress + full-UI revision.
+- [x] Identified `702d652` as the last full-UI revision. Cypress in that tree is not ported.
 - [x] Built and served it (`node:18` + pnpm 7); captured 14 screenshots to
       `ezaudit-revive-702/screenshots/`.
 - [x] Surveyed `../astro-mate`, `../identity`, `../infrastructure`; reports in
@@ -44,15 +44,14 @@ it is `../astro-mate`, `../identity`, and `../infrastructure`.
 
 ## Phase 2 — UI port
 
-- Port components/routes per [02-ui-parity](./02-ui-parity.md), preserving `data-cy`.
+- Port components/routes per [02-ui-parity](./02-ui-parity.md). Do not preserve `data-cy`.
 - Replace `next/image`, `next/link`, `next/router`, `next/head` with
   `img`/`Link`/`useNavigate`/`react-helmet` (or equivalent) without changing markup.
 - Move the Chakra theme and assets verbatim; load Open Sans + normalize.css + manifest in
   `index.html`.
-- Stand the source app (`:3100`) and the target side by side; run the parity harness.
+- Check the port against the archived screenshots in `ezaudit-revive-702/screenshots/`.
 
-**Gate:** every route matches the `702d652` screenshot within the agreed threshold; all
-`data-cy` flows pass.
+**Gate:** the [02](./02-ui-parity.md) port checklist passes.
 
 ## Phase 3 — Auth
 
@@ -92,9 +91,10 @@ classes.
 
 ## Phase 7 — Tests + CI
 
-- Port Cypress to Playwright, add Vitest suites, wire CI.
+- Add frontend and backend Vitest suites per [07-testing-and-ci](./07-testing-and-ci.md).
+  Delete Cypress. Do not add Playwright.
 
-**Gate:** CI green; parity gate enforced.
+**Gate:** `pnpm test` and CI are green.
 
 ## Phase 8 — Cutover
 
@@ -120,7 +120,7 @@ previous state.
 | Legacy data migration | One-off `importLegacy`, then delete it ([ADR 0004](../adr/0004-migrate-legacy-audits.md)) |
 | Shared CloudFront viewer-request allowlist | Use a dedicated `ezaudit-viewer-request` function |
 | Local Terraform state loss | Back up `terraform.tfstate`; the `aws/ezaudit` stack is recreatable |
-| Exact-UI drift | Enforce the pixel-parity gate before every merge in Phase 2 |
+| Exact-UI drift | Port against the archived `702d652` screenshots and the inventory in spec 02 |
 
 ## Acceptance criteria for the whole conversion
 
@@ -129,5 +129,5 @@ previous state.
 - [ ] The backend is Convex; no PHP/MySQL/Redis/Pusher/Laravel remains.
 - [ ] `pnpm dev|build|test|lint|typecheck` and both Convex deploys work.
 - [ ] `scripts/deploy-frontend.sh` publishes to S3 + CloudFront.
-- [ ] Cypress is replaced by passing Playwright/Vitest coverage.
+- [ ] Cypress is gone. Frontend and backend tests are Vitest only.
 - [ ] The Laravel-era code is archived and removed.

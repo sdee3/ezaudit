@@ -49,11 +49,11 @@ React is pinned to 18.3 for Chakra v2. That constrains the Clerk SDK:
 | `/sso-callback` | guest | consume `?token=`, `signIn.create({ strategy: "ticket" })`, `setActive`, strip the param, then navigate to the intended route |
 | signed-in visit to `/dashboard` | signed-in | existing `Dashboard` UI |
 
-The **UI is unchanged**: `AuthWrapper`, the tabbed sign-in/register/reset forms, and all
-`data-cy` hooks stay. Only the submit action of `SignInForm` becomes "continue with SDEE3
-Identity" (`window.location.assign(buildHubSignInUrl(...))`); `RegisterForm` /
-`ResetPasswordForm` remain for compatibility and delegate to the hub where identity
-management is out of scope.
+The **UI is unchanged**: `AuthWrapper` and the tabbed sign-in/register/reset forms stay.
+`data-cy` hooks are not carried forward. Only the submit action of `SignInForm` becomes
+"continue with SDEE3 Identity" (`window.location.assign(buildHubSignInUrl(...))`);
+`RegisterForm` / `ResetPasswordForm` remain for compatibility and delegate to the hub
+where identity management is out of scope.
 
 ### Provider composition
 
@@ -143,4 +143,4 @@ pieces. Record the fork path and the sync burden in this spec before doing it.
 - [ ] `ctx.auth.getUserIdentity()` is non-null in ezaudit Convex for authenticated calls; `requireUserId` throws `Not authenticated` otherwise.
 - [ ] Identity Convex records `users`, `userAppLinks`, `auditLog` rows for ezaudit sign-ins.
 - [ ] No Firebase/Laravel auth dependency remains; no password is ever stored by ezaudit.
-- [ ] React remains 18.3 and Chakra v2; the Clerk SDK version used passes the parity gate in [02](./02-ui-parity.md).
+- [ ] React remains 18.3 and Chakra v2; the Clerk SDK version does not change the UI inventory in [02](./02-ui-parity.md).

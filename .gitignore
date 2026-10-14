@@ -36,8 +36,11 @@ build/Release
 .next/
 .vscode/
 node_modules/
-public/*
-!public/static/
+dist/
+
+# Legacy Next.js public output. Anchored to the repo root so frontend/public is tracked.
+/public/*
+!/public/static/
 
 # Optional cache directories and files
 .npm
@@ -57,6 +60,19 @@ public/*
 
 # dotenv environment variables file
 .env
+.env.local
+.env.production
+frontend/.env.local
+frontend/.env.production
+backend/.env.local
+backend/.env.production
+scripts/.env
+
+# Local scratch (parked Laravel tree, recon). Never commit.
+.scratch/
+
+# Playwright MCP session dumps
+.playwright-mcp/
 
 # SST
 layers/*

@@ -37,7 +37,7 @@ the sign-in action (see [03-identity-auth](./03-identity-auth.md)).
 
 | Source | Target | Notes |
 |---|---|---|
-| `components/Alert/Alert.tsx` + `hooks` | same | `data-cy="alert"`; optional close |
+| `components/Alert/Alert.tsx` + `hooks` | same | optional close |
 | `components/AuditForm/AuditForm.tsx` + `hooks` | same | react-hook-form, regex validation, alert on submit |
 | `components/AuditResult/AuditResult.tsx` | same | owner vs public rendering, options block |
 | `components/AuditResult/ShareAuditURLModal.tsx` | same | clipboard copy modal |
@@ -51,7 +51,7 @@ the sign-in action (see [03-identity-auth](./03-identity-auth.md)).
 | `components/Footer/index.tsx` | same | year, T&C link, hidden link while printing |
 | `components/Layout/index.tsx` | same | Navbar + main + Footer |
 | `components/Loading/Loading.tsx` + `hooks` | same | centered spinner |
-| `components/Navbar/Navbar.tsx` | same | logo, wordmark, `data-cy="userDashboardBtn"` |
+| `components/Navbar/Navbar.tsx` | same | logo, wordmark, dashboard button |
 | `components/NoResults/NoResults.tsx` | same | `noResultAs200` / `noResultsAs404` variants |
 | `modules/Dashboard/components/Dashboard.tsx` | same | Your Data / Audits / Account Settings |
 | `modules/Print/hooks/usePrintContext.tsx` | same | `isPrinting` context |
@@ -93,38 +93,33 @@ Fix the known path bug from `702d652`: `manifest.json` references `/manifest/*` 
 files live at `/static/manifest/*`. The port must use consistent paths (this is a bug
 fix, not a UI change).
 
-## Interaction contract (`data-cy` hooks)
+## Cypress selectors
 
-These selectors are the automated-test contract and must be preserved:
-
-`submitAuditSiteInput`, `submitAuditEmailInput`, `submitAuditBtn`, `alert`,
-`userDashboardBtn`, `signInForm`, `signInEmailInput`, `signInPasswordInput`,
-`signInSubmitButton`, `registerForm`, `registerEmailInput`, `registerPasswordInput`,
-`registerPasswordConfirmationInput`, `resetPasswordForm`, `resetPasswordEmailInput`,
-`auditsTable`, `auditTableRow<id>`, `viewAuditsBtn`, `noResultAs200`, `noResultsAs404`.
+`data-cy` hooks in `702d652` (`submitAuditBtn`, `auditsTable`, `signInForm`, and the
+rest) belonged to Cypress. Do not carry them forward. Vitest covers the same behavior
+by role, label, and text ([07-testing-and-ci](./07-testing-and-ci.md)).
 
 ## Print / PDF behavior
 
 - `PrintContext.isPrinting` hides navbar icon, breadcrumbs, and options while printing.
 - "Export to PDF" triggers `window.print()`; `window.onafterprint` clears the flag.
-- The target replaces any server-side PDF generation with the browser print path (or a
-  Convex action if a true server PDF is required — see [04-backend-convex](./04-backend-convex.md)).
+- The target replaces any server-side PDF generation with the browser print path only
+  ([ADR 0002](../adr/0002-pdf-browser-print.md)).
 
 ## PWA
 
 Keep the `next-pwa` behavior by porting the manifest and a Vite PWA plugin config
 (installable, standalone, theme `#2663D1`). Manifest name/short_name `EZ Audit`.
 
-## Parity gate (acceptance)
+## Port checklist (acceptance)
 
-1. Stand up the source app at `702d652` (worktree `ezaudit-revive-702`, `:3100`) and the
-   converted app side by side against the same mock data.
-2. Playwright captures every route/state listed in the route map (including the empty
-   audits state, the public audit view, the share modal, and the 404).
-3. A pixel diff between source and target screenshots must be below the agreed threshold
-   (default: no visible diff at 1440×900; allow-list only sub-pixel antialiasing).
-4. All `data-cy` interactions from the Cypress suite pass as Playwright tests.
-5. No Chakra v3 APIs, no Tailwind, no component-library swap.
+The archived screenshots in `ezaudit-revive-702/screenshots/` are the visual reference.
+There is no automated pixel diff and no browser integration suite.
+
+1. Every route, component, token, and asset in this spec is present in `frontend/`.
+2. Empty audits, the public audit view, the share modal, and the 404 match those
+   screenshots.
+3. No Chakra v3 APIs, no Tailwind, no component-library swap.
 
 ## Non-goals
 
