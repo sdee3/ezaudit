@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { SubmitHandler, UseFormSetValue, UseFormTrigger } from 'react-hook-form'
+import { useMutation } from 'convex/react'
 
-import { useApi } from '../../../utils'
+import { api } from 'convex/_generated/api'
+
 import { useLoading } from '../../Loading'
 import { ApiResponse, HomeAuditInputValues } from '../../../models'
+
+const SUBMITTED_MESSAGE =
+  "Audit submitted! We'll email the results when it's ready."
 
 const useInput = (
   setFormFieldValue: UseFormSetValue<HomeAuditInputValues>,
@@ -13,7 +18,7 @@ const useInput = (
   const [apiResponseOutput, setApiResponseOutput] =
     useState<ApiResponse | null>(null)
   const { isLoading, setIsLoading } = useLoading()
-  const { fetchFromApi } = useApi()
+  const submitAudit = useMutation(api.audits.submit)
 
   useEffect(() => {
     trigger()
@@ -27,15 +32,17 @@ const useInput = (
     async ({ domain, email }) => {
       try {
         setIsLoading(true)
-        const valueFromResponse: ApiResponse = await fetchFromApi(
-          '/api/audit',
-          'POST',
-          { domain, email }
-        )
+        await submitAudit({ domain, email })
 
-        setApiResponseOutput(valueFromResponse)
-      } catch {
-        setIsLoading(false)
+        setApiResponseOutput({ status: 202, message: SUBMITTED_MESSAGE })
+      } catch (error) {
+        setApiResponseOutput({
+          status: 500,
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Something went wrong. Please try again.',
+        })
       } finally {
         setIsLoading(false)
         setFormFieldValue('domain', '')
@@ -43,7 +50,7 @@ const useInput = (
         trigger()
       }
     },
-    [fetchFromApi, setFormFieldValue, setIsLoading, trigger]
+    [submitAudit, setFormFieldValue, setIsLoading, trigger]
   )
 
   return { isLoading, onSubmit, apiResponseOutput }

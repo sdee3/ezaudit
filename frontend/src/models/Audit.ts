@@ -1,25 +1,33 @@
-export interface AuditResultFromAPI {
-  id: string
-  domain: string
+import type { Id } from 'convex/_generated/dataModel'
+
+/**
+ * A real Convex audits document (backend/convex/schema/audits.ts), as returned
+ * by api.audits.listMine / api.audits.get / api.audits.setVisibility.
+ */
+export interface Audit {
+  _id: Id<'audits'>
+  _creationTime: number
+  /** identity.subject of the owner, or null for signed-out submissions. */
+  userId: string | null
   email: string
-  audit_result: string
-  date_of_request: string
-  is_public: number
+  domain: string
+  status: 'queued' | 'running' | 'done' | 'error'
+  audit_result: AuditResultCategories | null
+  is_public: boolean
+  /** ms epoch. */
+  date_of_request: number
+  error?: string
+  createdAt: number
+  updatedAt: number
 }
 
-export interface AuditResultParsed {
-  id: string
-  domain?: string
-  email: string
-  audit_result: AuditResultCategories
-  date_of_request: string
-  is_public: boolean
-}
+/** Matches the Convex doc — the pre-Convex shape was parsed from a JSON string. */
+export type AuditResultParsed = Audit
 
 export interface AuditResultCategories {
   accessibility: AuditAccessibility
-  best_practices: AuditBestPractices
-  'best-practices': AuditBestPractices
+  /** Canonical key — Convex validators reject hyphenated identifiers. */
+  bestPractices: AuditBestPractices
   performance: AuditPerformance
   seo: AuditSEO
 }

@@ -10,16 +10,17 @@ import {
   Thead,
   Tr,
 } from '@chakra-ui/react'
-import { useCallback, useContext, useEffect, useState } from 'react'
+import { useQuery } from 'convex/react'
+import { useContext } from 'react'
 import { Link } from 'react-router-dom'
 
+import { api } from 'convex/_generated/api'
+
 import {
-  AuditResultFromAPI,
-  AuditResultParsed,
+  AuditResultCategories,
   BreadcrumbLink,
 } from '../../../models'
-import { AuditResultCategories } from '../../../models/Audit'
-import { ROUTES, UNAUTHORIZED_STATUS_CODE } from '../../../utils'
+import { ROUTES } from '../../../utils'
 import {
   Breadcrumbs,
   Loading,
@@ -27,7 +28,6 @@ import {
   AuthWrapper,
   AuthContext,
 } from '../../../components'
-import { useApi } from '../../../utils'
 import { Head } from '../../../head'
 
 const BREADCRUMB_LINKS: BreadcrumbLink[] = [
@@ -37,49 +37,21 @@ const BREADCRUMB_LINKS: BreadcrumbLink[] = [
   },
 ]
 
+/** Renders '—' while the audit is queued/running (audit_result is null). */
+const scoreCell = (
+  audit_result: AuditResultCategories | null,
+  category: keyof AuditResultCategories
+) => (audit_result === null ? '—' : Math.ceil(audit_result[category].score * 100))
+
 const AuditsIndex = () => {
-  const [audits, setAudits] = useState<AuditResultParsed[] | null>(null)
-  const { fetchFromApi } = useApi()
-  const { user, clearUser } = useContext(AuthContext)
+  const { user } = useContext(AuthContext)
+  // Reactive subscription: the table updates live as audits progress.
+  const audits = useQuery(api.audits.listMine, user ? {} : 'skip')
 
-  const [isLoading, setIsLoading] = useState(false)
-
-  const fetchAudits = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      const { status, message } = await fetchFromApi('/api/audits', 'GET')
-
-      if (status === UNAUTHORIZED_STATUS_CODE) {
-        throw new Error()
-      }
-
-      const auditsParsed: AuditResultParsed[] = (
-        message as AuditResultFromAPI[]
-      ).map(r => ({
-        ...r,
-        audit_result: JSON.parse(r.audit_result) as AuditResultCategories,
-        is_public: r.is_public === 1,
-      }))
-
-      setAudits(auditsParsed)
-    } catch (err) {
-      if (audits?.length !== 0) setAudits([])
-      clearUser()
-      window.location.reload()
-    } finally {
-      setIsLoading(false)
-    }
-  }, [audits?.length, clearUser, fetchFromApi])
-
-  useEffect(() => {
-    if (audits !== null) return
-    if (user) fetchAudits()
-  }, [audits, fetchAudits, user])
-
-  if (isLoading) return <Loading />
   if (!user) return <AuthWrapper />
+  if (audits === undefined) return <Loading />
 
-  if (!audits || audits.length === 0) {
+  if (audits.length === 0) {
     return (
       <>
         <Head title="Your Audits | EZ Audit" />
@@ -115,7 +87,7 @@ const AuditsIndex = () => {
             </Thead>
             <Tbody>
               {audits.map(audit => (
-                <Link key={audit.id} to={ROUTES.audit(audit.id)}>
+                <Link key={audit._id} to={ROUTES.audit(audit._id)}>
                   <Tr cursor="pointer">
                     <Td>
                       <a
@@ -126,18 +98,10 @@ const AuditsIndex = () => {
                         {audit.domain}
                       </a>
                     </Td>
-                    <Td>
-                      {Math.ceil(audit.audit_result.accessibility.score * 100)}
-                    </Td>
-                    <Td>
-                      {Math.ceil(
-                        audit.audit_result['best-practices'].score * 100
-                      )}
-                    </Td>
-                    <Td>
-                      {Math.ceil(audit.audit_result.performance.score * 100)}
-                    </Td>
-                    <Td>{Math.ceil(audit.audit_result.seo.score * 100)}</Td>
+                    <Td>{scoreCell(audit.audit_result, 'accessibility')}</Td>
+                    <Td>{scoreCell(audit.audit_result, 'bestPractices')}</Td>
+                    <Td>{scoreCell(audit.audit_result, 'performance')}</Td>
+                    <Td>{scoreCell(audit.audit_result, 'seo')}</Td>
                   </Tr>
                 </Link>
               ))}

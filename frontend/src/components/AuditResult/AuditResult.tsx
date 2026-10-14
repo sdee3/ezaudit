@@ -14,12 +14,19 @@ import {
 import { ChangeEvent, useContext, useMemo } from 'react'
 import { FiFileText } from 'react-icons/fi'
 
-import { AuditResultParsed } from '../../models'
+import { AuditResultCategories, AuditResultParsed } from '../../models'
 import { PrintContext } from '../../modules/Print'
 import { ROUTES } from '../../utils'
 import { Alert } from '../Alert'
 import { AuthContext } from '../Auth'
 import { ShareAuditURLModal } from './ShareAuditURLModal'
+
+/** Renders '—' while the audit is queued/running (audit_result is null). */
+const scoreText = (
+  audit_result: AuditResultCategories | null,
+  category: keyof AuditResultCategories
+) =>
+  audit_result === null ? '—' : Math.ceil(audit_result[category].score * 100)
 
 interface Props {
   audit: AuditResultParsed
@@ -115,19 +122,19 @@ export const AuditResult = ({ audit, handleOnSwitchChange }: Props) => {
       <Box mt={4} mb={8}>
         <Text>
           <strong>Accessibility: </strong>
-          {Math.ceil(audit.audit_result.accessibility.score * 100)}
+          {scoreText(audit.audit_result, 'accessibility')}
         </Text>
         <Text>
           <strong>Best Practices: </strong>
-          {Math.ceil(audit.audit_result['best-practices'].score * 100)}
+          {scoreText(audit.audit_result, 'bestPractices')}
         </Text>
         <Text>
           <strong>Performance: </strong>
-          {Math.ceil(audit.audit_result.performance.score * 100)}
+          {scoreText(audit.audit_result, 'performance')}
         </Text>
         <Text>
           <strong>SEO: </strong>
-          {Math.ceil(audit.audit_result.seo.score * 100)}
+          {scoreText(audit.audit_result, 'seo')}
         </Text>
       </Box>
 

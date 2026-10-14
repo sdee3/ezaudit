@@ -1,6 +1,10 @@
 import { Container } from '@chakra-ui/react'
-import { ChangeEvent, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useMutation, useQuery } from 'convex/react'
+import { ChangeEvent, useContext, useEffect, useMemo } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+
+import { api } from 'convex/_generated/api'
+import type { Id } from 'convex/_generated/dataModel'
 
 import {
   AuditResult,
@@ -11,13 +15,8 @@ import {
   NoResults,
 } from '../../../components'
 import { ResetPasswordForm } from '../../../components/Auth/components/ResetPasswordForm'
-import {
-  AuditResultCategories,
-  AuditResultFromAPI,
-  AuditResultParsed,
-  BreadcrumbLink,
-} from '../../../models'
-import { ROUTES, UNAUTHORIZED_STATUS_CODE } from '../../../utils'
+import { AuditResultParsed, BreadcrumbLink } from '../../../models'
+import { ROUTES } from '../../../utils'
 import { useApi } from '../../../utils'
 import { Head, HeadMeta } from '../../../head'
 
@@ -32,16 +31,23 @@ const BREADCRUMB_LINKS: BreadcrumbLink[] = [
   },
 ]
 
+/** Convex ids are 26 lowercase base32 chars; anything else cannot exist server-side. */
+const isPlausibleId = (value: string) => /^[a-z0-9]{26}$/.test(value)
+
 const AuditByIdOverview = () => {
   const { user } = useContext(AuthContext)
-  const [audit, setAudit] = useState<AuditResultParsed | null>(null)
-  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const { id: auditId = '' } = useParams()
   const [searchParams] = useSearchParams()
   const emailToken = searchParams.get('e')
-  const { fetchFromApi, fetchEmailDataFromUrl, parsedEmail, clearParsedEmail } =
-    useApi()
+  const { fetchEmailDataFromUrl, parsedEmail, clearParsedEmail } = useApi()
+
+  const id = isPlausibleId(auditId) ? (auditId as Id<'audits'>) : null
+  const toggleVisibility = useMutation(api.audits.setVisibility)
+  const audit = useQuery(
+    api.audits.get,
+    id && !parsedEmail ? { id } : 'skip'
+  )
 
   const metaTitle = `EZ Audit | SEO Audit result of ${audit?.domain ?? ''}`
   const metaDescription = `SEO Audit report of ${
@@ -74,67 +80,17 @@ const AuditByIdOverview = () => {
     [metaDescription, metaTitle]
   )
 
-  const parseAuditFromApi = (resultFromAPI: AuditResultFromAPI) => {
-    const auditParsed: AuditResultParsed = {
-      ...resultFromAPI,
-      audit_result: JSON.parse(
-        resultFromAPI.audit_result
-      ) as AuditResultCategories,
-      is_public: resultFromAPI.is_public === 1,
-    }
+  const handleOnSwitchChange = async (_e: ChangeEvent<HTMLInputElement>) => {
+    if (!audit) return
 
-    return auditParsed
+    // The reactive useQuery picks up the patched doc; no local state needed.
+    await toggleVisibility({ id: audit._id })
   }
-
-  const handleOnSwitchChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    const resultFromAPI = await fetchFromApi(
-      `/api/audits/${auditId}/status/${e.target.checked ? 1 : 0}`,
-      'PUT'
-    )
-
-    if (resultFromAPI.status === UNAUTHORIZED_STATUS_CODE) {
-      throw new Error()
-    }
-
-    const message = resultFromAPI.message
-    if (!message || typeof message !== 'object' || Array.isArray(message)) {
-      return
-    }
-
-    setAudit(parseAuditFromApi(message as AuditResultFromAPI))
-  }
-
-  const fetchData = useCallback(async () => {
-    if (!auditId) return
-
-    try {
-      setLoading(true)
-
-      const resultFromAPI = await fetchFromApi(`/api/audits/${auditId}`, 'GET')
-
-      if (resultFromAPI.status === UNAUTHORIZED_STATUS_CODE) {
-        throw new Error()
-      }
-
-      const message = resultFromAPI.message
-      if (!message || typeof message !== 'object' || Array.isArray(message)) {
-        throw new Error()
-      }
-
-      setAudit(parseAuditFromApi(message as AuditResultFromAPI))
-    } catch (error) {
-      setAudit(null)
-    } finally {
-      setLoading(false)
-    }
-  }, [fetchFromApi, auditId])
 
   useEffect(() => {
     if (!user && emailToken) fetchEmailDataFromUrl(emailToken)
-    if (!parsedEmail) fetchData()
     if (parsedEmail) navigate(ROUTES.audit(auditId))
   }, [
-    fetchData,
     fetchEmailDataFromUrl,
     parsedEmail,
     navigate,
@@ -151,7 +107,7 @@ const AuditByIdOverview = () => {
     if (user && emailToken) navigate(ROUTES.audit(auditId), { replace: true })
   }, [navigate, user, emailToken, auditId])
 
-  if (loading) return <Loading />
+  if (id && audit === undefined && !parsedEmail) return <Loading />
   if (!user && !parsedEmail && !audit?.is_public) return <AuthWrapper />
   if (!audit && !parsedEmail) return <NoResults asError404 />
 
