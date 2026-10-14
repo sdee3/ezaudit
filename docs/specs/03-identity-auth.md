@@ -134,7 +134,7 @@ pieces. Record the fork path and the sync burden in this spec before doing it.
 | 2 | `identity/convex/schema.ts` | add `v.literal("ezaudit")` to `appSlugValidator` and the `AppSlug` type | [x] done (same commit) |
 | 3 | `identity/convex/credits/httpHandlers.ts` | only if credits adopted: `ezaudit: "CREDITS_SERVICE_SECRET_EZAUDIT"` + slug unions | [x] done defensively — env key present but stays unset (auth-only adoption); required by the `Record<AppSlug, …>` type once the slug exists |
 | 4 | `identity/packages/credits/src/types.ts` | only if credits adopted: add slug to `AppSlug`; rebuild package | [ ] not applicable |
-| 5 | Clerk dashboard | FAPI subdomain allowlist += `ezaudit`; allowed redirect origins += `https://ezaudit.sdee3.com`; confirm `convex` JWT template + shared `/clerk-webhook` | [human-dashboard] pending |
+| 5 | Clerk dashboard | ~~FAPI subdomain allowlist += ezaudit; allowed redirect origins~~ N/A on the free Clerk plan: the instance is bound to all of `sdee3.com`, so `ezaudit.sdee3.com` (and existing localhost dev origins) inherit it. `convex` JWT template is instance-global | [x] no-change confirmed (verified live) |
 | 6 | identity Convex env | only if credits adopted: `CREDITS_SERVICE_SECRET_EZAUDIT` | [ ] not applicable |
 | 7 | identity deploy | run `./scripts/deploy-frontend.sh` so the updated allowlist ships; also `npx convex deploy` from the identity repo so the schema change reaches its deployment | [ ] pending |
 
