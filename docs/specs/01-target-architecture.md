@@ -1,6 +1,6 @@
 # 01 — Target Architecture
 
-**Status:** `planned`
+**Status:** `partial` (workspace + isolation live; deploy scripts done, Terraform wrapper trio pending)
 
 ## Goal
 

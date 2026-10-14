@@ -1,6 +1,6 @@
 # 05 — Deploy Frontend (S3 + CloudFront)
 
-**Status:** `planned`
+**Status:** `implemented` (stack applied; first content deploy pending the live Clerk key check)
 
 ## Requirement
 
@@ -13,8 +13,8 @@ only syncs objects, manages the security-headers policy, and invalidates the cac
 
 | Resource | Value |
 |---|---|
-| S3 bucket | `ezaudit-sdee3` (private, OAC-only) |
-| Distribution | `ezaudit` in a new `aws/ezaudit/` stack (created, not adopted) |
+| S3 bucket | `ezaudit-sdee3` (private, OAC-only) — live |
+| Distribution | `E3581TUKKUJZQP` in `aws/ezaudit/` (created, not adopted) — applied 2026-10-14 |
 | Alternate domain | `ezaudit.sdee3.com` |
 | ACM cert | us-east-1, DNS-validated via Cloudflare |
 | Default root object | `index.html` |
