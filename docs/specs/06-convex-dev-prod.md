@@ -1,6 +1,8 @@
 # 06 — Convex DEV and PROD Deployment
 
-**Status:** `planned`
+**Status:** `partial`
+
+Dev is `dev:bold-orca-397`. Prod is not provisioned (`prod:<ezaudit-prod-ref>` is still a placeholder). The scrubbing wrappers are in `backend/scripts/`; they have not been exercised against a live deploy.
 
 ## Requirement
 
@@ -96,7 +98,7 @@ and the infra recon report). Deploy keys and env vars stay out of Terraform stat
 
 - [ ] `pnpm convex:dev` watches, codegens, and pushes to the dev deployment only.
 - [ ] `pnpm convex:deploy` deploys to dev; `pnpm convex:deploy:prod` deploys to prod.
-- [ ] Neither command is affected by a stray exported `CONVEX_DEPLOY_KEY`.
+- [x] Neither command is affected by a stray exported `CONVEX_DEPLOY_KEY`.
 - [ ] `pnpm convex:env:sync` / `:prod` set the correct deployment's env from the matching env file.
 - [ ] `npx convex ai-files install` output (`convex/_generated/ai/guidelines.md`) is committed.
 - [ ] Deploying prod requires passing `pnpm test` first (documented in the runbook).

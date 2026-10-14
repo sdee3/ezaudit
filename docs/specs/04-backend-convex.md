@@ -1,6 +1,8 @@
 # 04 — Backend (Convex)
 
-**Status:** `planned`
+**Status:** `partial`
+
+Dev deployment `dev:bold-orca-397` (project `stefan-djokic:ezaudit-91edc`) has the schema, functions, and tests. Auth is enforced on owner-only functions. The dev deployment is seeded with 4 sample audits. Real-time dashboard updates are not verified yet.
 
 ## Requirement
 
@@ -68,7 +70,7 @@ backend/
 | `email` | `string` | submission email (may differ from the Clerk email for logged-out audits) |
 | `domain` | `string` | audited URL |
 | `status` | `"queued" \| "running" \| "done" \| "error"` | drives real-time status |
-| `audit_result` | `object \| null` | `{ accessibility, 'best-practices', performance, seo }` each `{ score }` |
+| `audit_result` | `object \| null` | `{ accessibility, bestPractices, performance, seo }` each `{ score }`. Deviation: the key is `bestPractices`, not `best-practices`, because Convex rejects hyphenated identifiers in validators. |
 | `is_public` | `boolean` | replaces the legacy `0/1` integer |
 | `date_of_request` | `number` | ms epoch; UI formats with `new Date(...).toString()` |
 | `error` | `string?` | populated on failure |
@@ -145,10 +147,10 @@ are imported ownerless, not dropped. See
 
 ## Acceptance criteria
 
-- [ ] `pnpm --filter ezaudit-backend test` passes with co-located `convex-test` cases for submit/list/get/setVisibility and pipeline transitions.
-- [ ] `ctx.auth` is enforced on all owner-only functions; unauthenticated calls throw `Not authenticated`.
+- [x] `pnpm --filter ezaudit-backend test` passes with co-located `convex-test` cases for submit/list/get/setVisibility and pipeline transitions.
+- [x] `ctx.auth` is enforced on all owner-only functions; unauthenticated calls throw `Not authenticated`.
 - [ ] A submitted audit appears in the dashboard **without a page reload** (real-time query).
-- [ ] Public audits are readable signed-out; private audits are not.
-- [ ] No MySQL, Redis, PHP, Pusher, or Laravel artifact remains in `backend/`.
-- [ ] `convex/_generated` is committed and a fresh clone builds and tests without codegen.
+- [x] Public audits are readable signed-out; private audits are not.
+- [x] No MySQL, Redis, PHP, Pusher, or Laravel artifact remains in `backend/`.
+- [x] `convex/_generated` is committed and a fresh clone builds and tests without codegen.
 - [x] D1–D3 decisions are recorded as ADRs with the chosen path.

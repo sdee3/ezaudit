@@ -73,4 +73,4 @@ Single workflow on push and pull requests:
 - [ ] `pnpm test` passes on a fresh clone with no `.env.local`.
 - [ ] Backend tests run under `edge-runtime` and cover auth failure paths.
 - [ ] CI is green on push and pull requests; no private-repo clone step is required.
-- [ ] Cypress, `cypress.json`, and any Playwright dependency or parity script are absent.
+- [x] Cypress, `cypress.json`, and any Playwright dependency or parity script are absent.
