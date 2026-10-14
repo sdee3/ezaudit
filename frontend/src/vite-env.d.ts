@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 
+
 interface ImportMetaEnv {
   [key: string]: string | undefined
   readonly VITE_GOOGLE_ANALYTICS?: string

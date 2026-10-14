@@ -29,7 +29,9 @@ export default defineConfig(({ mode }) => {
       googleAnalyticsId(env.VITE_GOOGLE_ANALYTICS ?? ''),
       react(),
       VitePWA({
-        registerType: 'autoUpdate',
+        // SW registration + update reload is handled in src/main.tsx so the
+        // tab reloads the instant a built update takes control.
+        injectRegister: false,
         includeAssets: [
           'static/favicon.ico',
           'static/manifest/icon-bordered.png',

@@ -28,6 +28,35 @@ const signUpUrl = directSignIn
   ? '/sign-in'
   : import.meta.env.VITE_CLERK_SIGN_UP_URL
 
+/**
+ * PWA: reload the tab once an updated service worker takes control. Without
+ * this, a browser running a precached bundle (especially an installed PWA
+ * window) stays stuck one version behind an already-deployed build until it
+ * happens to reload after the new SW installs.
+ */
+function registerServiceWorker(): void {
+  if (!('serviceWorker' in navigator) || !import.meta.env.PROD) return
+
+  // First-ever install transitions no-controller → controlled; the tab already
+  // serves the freshest bundle, so no reload is needed in that case.
+  const hadController = Boolean(navigator.serviceWorker.controller)
+  let refreshing = false
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || refreshing) return
+    refreshing = true
+    window.location.reload()
+  })
+
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {
+      // SW registration failure must never block the app.
+    })
+  })
+}
+
+registerServiceWorker()
+
 const root = document.getElementById('root')
 if (!root) throw new Error('Root element missing')
 
