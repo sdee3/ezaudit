@@ -1,6 +1,6 @@
 # 05 — Deploy Frontend (S3 + CloudFront)
 
-**Status:** `implemented` (stack applied; first content deploy pending the live Clerk key check)
+`implemented` — stack applied AND first production deploy shipped 2026-10-14 (HTTP 200 + canonical CSP verified live)
 
 ## Requirement
 
