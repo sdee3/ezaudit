@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "convex dev",
-    "deploy": "convex deploy",
-    "deploy:prod": "convex deploy --prod",
+    "deploy": "bash scripts/convex-with-env.sh deploy --env-file ../frontend/.env.local",
+    "deploy:prod": "bash scripts/convex-with-env.sh --prod deploy",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "lint": "tsc --noEmit -p tsconfig.json"

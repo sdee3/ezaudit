@@ -14,7 +14,10 @@
     "lint": "pnpm -r --if-present lint",
     "typecheck": "pnpm -r --if-present typecheck",
     "convex:deploy": "pnpm --filter ezaudit-backend deploy",
-    "convex:deploy:prod": "pnpm --filter ezaudit-backend deploy:prod"
+    "convex:deploy:prod": "pnpm --filter ezaudit-backend deploy:prod",
+    "convex:env:sync": "cd backend && bash scripts/sync-convex-env.sh",
+    "convex:env:sync:prod": "cd backend && bash scripts/sync-convex-env.sh --prod",
+    "test:convex": "pnpm --filter ezaudit-backend test"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
