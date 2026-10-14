@@ -57,7 +57,8 @@ Single workflow on push and pull requests:
 > Note from the astro-mate recon: its CI additionally clones the private `sdee3/identity`
 > repo to build the `file:` `@sdee3/credits` dependency, driven by the `IDENTITY_DEPLOY_KEY`
 > secret. **EZ Audit avoids that** by not depending on `@sdee3/credits` (spec 03), so CI
-> stays self-contained. If credits are later adopted, this step must be added.
+> stays self-contained. Credits (2026-10 display adoption) are vendored precisely so this
+> remains true — no identity-clone CI step was added.
 
 ## Local commands
 

@@ -14,6 +14,9 @@ interface ImportMetaEnv {
   readonly VITE_APP_ORIGIN?: string
   /** Convex deployment URL. */
   readonly VITE_CONVEX_URL: string
+  /** SDEE3 Identity Convex deployment URL, powers the credits badge
+   * (frontend/src/lib/identityCredits). See docs/specs/03-identity-auth.md. */
+  readonly VITE_IDENTITY_CONVEX_URL: string
 }
 
 interface ImportMeta {

@@ -67,7 +67,7 @@ ezaudit/
 | D2 | PDF via the existing browser print path | [04](./04-backend-convex.md), [ADR 0002](../adr/0002-pdf-browser-print.md) | accepted |
 | D3 | Audit-ready email via Resend from Convex | [04](./04-backend-convex.md), [ADR 0003](../adr/0003-email-resend.md) | accepted |
 | D4 | Clerk SDK package/version under React 18 | [03](./03-identity-auth.md) | open — spike the React-18-compatible Clerk line |
-| D5 | `@sdee3/credits` adoption | [03](./03-identity-auth.md) | accepted default: do **not** depend on it |
+| D5 | `@sdee3/credits` adoption | [03](./03-identity-auth.md) | updated 2026-10: still no npm dependency on it; instead a vendored React-18 subset implements auth **and credit display** |
 | D6 | Migrate legacy `audits` rows | [08](./08-migration-plan.md), [ADR 0004](../adr/0004-migrate-legacy-audits.md) | accepted |
 
 ## Recon sources

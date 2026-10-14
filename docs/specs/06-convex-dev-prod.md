@@ -83,7 +83,7 @@ Set on the ezaudit Convex deployments (dev and prod), via `convex env set` / das
 | `LIGHTHOUSE_WORKER_URL` | dev Lambda Function URL | prod Lambda Function URL |
 | `LIGHTHOUSE_WORKER_SECRET` | dev secret | prod secret |
 | `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | dev | prod |
-| `CREDITS_SERVICE_SECRET_EZAUDIT` | only if credits adopted | only if credits adopted |
+| `CREDITS_SERVICE_SECRET_EZAUDIT` | set 2026-10 (credits display adopted; matches identity dev) | set 2026-10 (matches identity prod) |
 
 Non-secret vars can be `env set`; secrets should be pushed with `convex:env:sync[:prod]`
 from the gitignored env files.

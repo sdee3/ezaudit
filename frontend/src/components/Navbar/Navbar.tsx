@@ -3,6 +3,7 @@ import { BiUserCircle } from 'react-icons/bi'
 import { useContext } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+import { CreditsBadge } from '../CreditsBadge'
 import { ROUTES } from '../../utils'
 import { PrintContext } from '../../modules/Print'
 
@@ -30,14 +31,20 @@ export const Navbar = () => {
                 </Heading>
               </Flex>
             </Link>
-            <BiUserCircle
-              cursor="pointer"
-              color={theme.colors.gray[600]}
+            <Flex
+              alignItems="center"
+              gap="4"
               visibility={isPrinting ? 'hidden' : 'visible'}
-              onClick={() => navigate(ROUTES.dashboard)}
-              size="3rem"
-              title="User dashboard"
-            />
+            >
+              <CreditsBadge />
+              <BiUserCircle
+                cursor="pointer"
+                color={theme.colors.gray[600]}
+                onClick={() => navigate(ROUTES.dashboard)}
+                size="3rem"
+                title="User dashboard"
+              />
+            </Flex>
           </Flex>
         </Box>
       </Container>

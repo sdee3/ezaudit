@@ -27,6 +27,7 @@ write_production_env() {
 VITE_APP_ORIGIN=${VITE_APP_ORIGIN:?set VITE_APP_ORIGIN in scripts/.env}
 VITE_CONVEX_URL=${VITE_CONVEX_URL:?set VITE_CONVEX_URL in scripts/.env}
 VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY:?set VITE_CLERK_PUBLISHABLE_KEY in scripts/.env}
+VITE_IDENTITY_CONVEX_URL=${VITE_IDENTITY_CONVEX_URL:?set VITE_IDENTITY_CONVEX_URL in scripts/.env}
 VITE_CLERK_SIGN_IN_URL=https://identity.sdee3.com/sign-in
 VITE_CLERK_SIGN_UP_URL=https://identity.sdee3.com/sign-up
 EOF
