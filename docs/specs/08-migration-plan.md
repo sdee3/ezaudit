@@ -31,9 +31,9 @@ it is `../astro-mate`, `../identity`, and `../infrastructure`.
 - [x] Built and served it (`node:18` + pnpm 7); captured 14 screenshots to
       `ezaudit-revive-702/screenshots/`. (Worktree still checked out at `702d652` on
       branch `revive/nextjs-cypress`; all 14 PNGs present.)
-- [x] Surveyed `../astro-mate`, `../identity`, `../infrastructure`; reports in
-      `.scratch/recon/` (astro-mate-frontend, astro-mate-backend, identity-auth,
-      infrastructure).
+- [x] Surveyed `../astro-mate`, `../identity`, `../infrastructure`; the raw reports
+      (astro-mate-frontend, astro-mate-backend, identity-auth, infrastructure) were kept
+      in `.scratch/recon/` until 2026-10 and then deleted once distilled into these specs.
 
 ## Phase 1 — Scaffold (done — `73e7548`)
 
@@ -194,8 +194,12 @@ production.)
    `feature/laravel-revert` branch (also on origin), not in `master`'s tree. Phase 1's
    "remove the Laravel `backend/` contents" and Phase 8's Python-style decommission
    steps therefore didn't apply as written; the Convex `backend/` was created fresh.
-   Laravel leftovers (incl. `database/database.sqlite` with the legacy `audits` rows)
-   are parked in the gitignored `.scratch/laravel-leftovers/`.
+   Laravel leftovers were parked in the gitignored `.scratch/laravel-leftovers/` until
+   2026-10, then deleted. Their `database/database.sqlite` was inspected on deletion:
+   `audits` (and every other table except one stale `sessions` row) had **0 rows**, so no
+   legacy data ever existed in that copy. ADR 0004's `importLegacy`, when implemented,
+   will have nothing local to import.
+   Older text here claimed the file held “the legacy `audits` rows” — that was wrong.
 2. **The pre-Laravel Next.js-era tree is still tracked at the repo root** — `pages/`,
    `components/`, `models/`, `modules/`, `utils/`, `public/`, `next.config.js`,
    `next-env.d.ts`, root `tsconfig.json` (~100 of 207 tracked paths). It is inert (no
@@ -212,7 +216,10 @@ production.)
    the worker deployment is open work (likely in `../infrastructure`, outside this
    repo).
 5. **Legacy data import not executed.** `audits.importLegacy` (ADR 0004) is not
-   implemented; the requirement and decision are unchanged.
+   implemented; the requirement and decision are unchanged. The only known local copy
+   of the legacy Laravel database was verified empty on its 2026-10 deletion, so a
+   local import would be a no-op; if legacy rows ever exist, they are not in this
+   repo's records.
 6. **Spec 06's `ai/guidelines.md` box conflicts with the shipped choice:**
    `backend/convex.json` sets `aiFiles.enabled: false`, so no
    `convex/_generated/ai/guidelines.md` exists and that acceptance box is treated as

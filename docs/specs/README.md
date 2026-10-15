@@ -72,12 +72,9 @@ ezaudit/
 
 ## Recon sources
 
-These specs are grounded in a read-only survey of the sibling repos; the raw reports are
-kept under `.scratch/recon/`:
-
-- `astro-mate-frontend.md` — Vite/React/Router/env/provider/testing conventions
-- `astro-mate-backend.md` — Convex layout, dev/prod deploy wrapper, env sync
-- `identity-auth.md` — hub SSO, allowlist, env vars, Clerk dashboard steps, CSP helper
-- `infrastructure.md` — Terraform stacks, S3/CloudFront/ACM/DNS and Convex project onboarding
+These specs are grounded in a read-only survey of the sibling repos (`astro-mate`,
+`identity-auth`, `../infrastructure`). The raw `.scratch/recon/` reports were deleted
+2026-10 after being distilled into these specs; recon is reproducible from the sibling
+repos.
 
 UI baseline: git `702d652`, archived screenshots in `ezaudit-revive-702/screenshots/`.
