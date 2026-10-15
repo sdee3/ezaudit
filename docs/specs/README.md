@@ -50,14 +50,14 @@ ezaudit/
 
 | Spec | Topic | Status |
 |------|-------|--------|
-| [01-target-architecture](./01-target-architecture.md) | Repo layout, stack pins, frontend/backend isolation | `planned` |
-| [02-ui-parity](./02-ui-parity.md) | Route/component/theme/asset inventory | `planned` |
-| [03-identity-auth](./03-identity-auth.md) | SDEE3 Identity hub integration, Clerk + Convex JWT, onboarding checklist | `planned` |
-| [04-backend-convex](./04-backend-convex.md) | Convex schema + functions replacing the Laravel backend | `planned` |
-| [05-deploy-frontend](./05-deploy-frontend.md) | `scripts/deploy-frontend.sh`, S3/CloudFront, security headers | `planned` |
-| [06-convex-dev-prod](./06-convex-dev-prod.md) | Convex DEV and PROD deployments, keys, env sync | `planned` |
-| [07-testing-and-ci](./07-testing-and-ci.md) | Vitest for frontend and backend; Cypress removed; CI checks | `planned` |
-| [08-migration-plan](./08-migration-plan.md) | Phased conversion with acceptance gates and risks | `planned` |
+| [01-target-architecture](./01-target-architecture.md) | Repo layout, stack pins, frontend/backend isolation | `partial` |
+| [02-ui-parity](./02-ui-parity.md) | Route/component/theme/asset inventory | `done` |
+| [03-identity-auth](./03-identity-auth.md) | SDEE3 Identity hub integration, Clerk + Convex JWT, onboarding checklist | `done` (code-complete; live checks open) |
+| [04-backend-convex](./04-backend-convex.md) | Convex schema + functions replacing the Laravel backend | `partial` |
+| [05-deploy-frontend](./05-deploy-frontend.md) | `scripts/deploy-frontend.sh`, S3/CloudFront, security headers | `partial` |
+| [06-convex-dev-prod](./06-convex-dev-prod.md) | Convex DEV and PROD deployments, keys, env sync | `partial` |
+| [07-testing-and-ci](./07-testing-and-ci.md) | Vitest for frontend and backend; Cypress removed; CI checks | `partial` |
+| [08-migration-plan](./08-migration-plan.md) | Phased conversion with acceptance gates and risks | `partial` |
 
 ## Decisions
 
@@ -66,7 +66,7 @@ ezaudit/
 | D1 | Lighthouse on AWS Lambda (container image, Function URL, no VPC) | [04](./04-backend-convex.md), [ADR 0001](../adr/0001-lighthouse-on-lambda.md) | accepted |
 | D2 | PDF via the existing browser print path | [04](./04-backend-convex.md), [ADR 0002](../adr/0002-pdf-browser-print.md) | accepted |
 | D3 | Audit-ready email via Resend from Convex | [04](./04-backend-convex.md), [ADR 0003](../adr/0003-email-resend.md) | accepted |
-| D4 | Clerk SDK package/version under React 18 | [03](./03-identity-auth.md) | open — spike the React-18-compatible Clerk line |
+| D4 | Clerk SDK package/version under React 18 | [03](./03-identity-auth.md) | open — spike the React-18-compatible Clerk line. Shipped: `@clerk/react` 6.17.8 (spec 03 names v5); decide whether to accept or amend |
 | D5 | `@sdee3/credits` adoption | [03](./03-identity-auth.md) | updated 2026-10: still no npm dependency on it; instead a vendored React-18 subset implements auth **and credit display** |
 | D6 | Migrate legacy `audits` rows | [08](./08-migration-plan.md), [ADR 0004](../adr/0004-migrate-legacy-audits.md) | accepted |
 

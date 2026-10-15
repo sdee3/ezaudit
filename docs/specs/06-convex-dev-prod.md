@@ -2,7 +2,11 @@
 
 **Status:** `partial`
 
-Dev is `dev:bold-orca-397`. Prod is not provisioned (`prod:<ezaudit-prod-ref>` is still a placeholder). The scrubbing wrappers are in `backend/scripts/`; they have not been exercised against a live deploy.
+Dev is `dev:bold-orca-397`. Prod is provisioned as `prod:standing-malamute-74`
+(both present in `../infrastructure/convex` state). The scrubbing wrappers are in
+`backend/scripts/` (added in `1cc7a84`) and are wired into `package.json`, but they
+have not been exercised against a live deploy from this repo, and
+`backend/.env.production` (the prod key source) does not exist yet on this machine.
 
 ## Requirement
 
@@ -16,16 +20,23 @@ dashboard.
 
 | Env | `CONVEX_DEPLOYMENT` | Convex URL (frontend) | Key source |
 |---|---|---|---|
-| dev | `dev:bold-orca-397` (project `stefan-djokic:ezaudit-91edc`) | `https://bold-orca-397.convex.cloud` | `backend/.env.local` |
-| prod | `prod:standing-malamute-74` | `https://standing-malamute-74.convex.cloud` | `backend/.env.production` |
+| dev | `dev:bold-orca-397` (project `ezaudit`) | `https://bold-orca-397.convex.cloud` | `backend/.env.local` |
+| prod | `prod:standing-malamute-74` | `https://standing-malamute-74.convex.cloud` | `backend/.env.production` (not yet created) |
 
-> Dev was provisioned with `npx convex project create ezaudit` + `npx convex dev --configure new --team stefan-djokic --project ezaudit --dev-deployment cloud` (the CLI auto-suffixed the project to `ezaudit-91edc`; the empty `ezaudit` project shell can be deleted from the dashboard). `CLERK_JWT_ISSUER_DOMAIN` is set on the dev deployment (`https://winning-jaybird-28.clerk.accounts.dev`, derived from the shared Clerk dev publishable key).
+> Both deployments verified against `../infrastructure/convex/terraform.tfstate`
+> (`convex_deployment.ezaudit_dev` → `bold-orca-397`, `convex_deployment.ezaudit_prod`
+> → `standing-malamute-74`, project id `3209319`). Provisioned with
+> `npx convex project create ezaudit` + `npx convex dev --configure new --team
+> stefan-djokic --project ezaudit --dev-deployment cloud`, then adopted by import
+> (`projects.tf` records the manual-create comment). `CLERK_JWT_ISSUER_DOMAIN` is
+> reported set on the dev deployment (`https://winning-jaybird-28.clerk.accounts.dev`,
+> derived from the shared Clerk dev publishable key) — not verifiable from repo code.
 
 ## Root scripts
 
 ```jsonc
 {
-  "dev": "concurrently -n backend,frontend -c blue,magenta \"pnpm convex:dev\" \"pnpm dev:frontend\"",
+  "dev": "concurrently -n convex,frontend -c blue,magenta \"pnpm convex:dev\" \"pnpm dev:frontend\"",
   "convex:dev": "pnpm --filter ezaudit-backend dev",
   "convex:deploy": "pnpm --filter ezaudit-backend deploy",
   "convex:deploy:prod": "pnpm --filter ezaudit-backend deploy:prod",
@@ -43,7 +54,8 @@ dashboard.
   "deploy": "bash scripts/convex-with-env.sh deploy --env-file ../frontend/.env.local",
   "deploy:prod": "bash scripts/convex-with-env.sh --prod deploy",
   "test": "vitest run",
-  "typecheck": "tsc --noEmit -p tsconfig.typecheck.json"
+  "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
+  "lint": "tsc --noEmit -p tsconfig.json"
 }
 ```
 
@@ -51,27 +63,37 @@ dashboard.
 > both here go through the scrubbing wrapper so prod always pins the key from
 > `backend/.env.production`. This closes the asymmetry called out in the astro-mate recon.
 
-## The scrubbing wrapper (`backend/scripts/convex-with-env.sh`)
+## The scrubbing wrapper (`backend/scripts/`)
 
-Three pieces, copied in shape from astro-mate:
+Three pieces, copied in shape from astro-mate (all committed in `1cc7a84`):
 
 1. `load-backend-env.sh` — safe dotenv parser (**never `source`**; deploy keys contain `|`
    and a trailing `=` that bash would mis-parse). Selects `backend/.env.production` with
-   `--prod`, else `backend/.env.local`.
+   `--prod`, else `backend/.env.local`; errors out if the file is missing.
 2. `convex-with-env.sh` — parses `--prod`, resolves the deployment + key, then runs the CLI
-   under a **scrubbed environment**:
+   under a **scrubbed environment** (verbatim from the script):
 
    ```bash
-   exec env -i PATH="$PATH" HOME="$HOME" USER="$USER" TMPDIR="${TMPDIR:-/tmp}" \
-     CONVEX_DEPLOYMENT="$DEPLOYMENT" CONVEX_DEPLOY_KEY="$CONVEX_DEPLOY_KEY" \
+   cd "${BACKEND_ROOT}"
+   exec env -i \
+     PATH="${PATH:-/usr/bin:/bin}" \
+     HOME="${HOME:-}" \
+     USER="${USER:-}" \
+     TMPDIR="${TMPDIR:-/tmp}" \
+     CONVEX_DEPLOYMENT="${CONVEX_DEPLOYMENT}" \
+     CONVEX_DEPLOY_KEY="${CONVEX_DEPLOY_KEY}" \
      npx convex "${ARGS[@]}"
    ```
 
    `env -i` guards against a stray `export CONVEX_DEPLOY_KEY` in a shared shell silently
-   pushing to another app's deployment.
+   pushing to another app's deployment. When `CONVEX_DEPLOYMENT` is absent from the env
+   file, dev falls back to the hard-coded `dev:bold-orca-397`; prod requires it and fails
+   otherwise.
 3. `sync-convex-env.sh` — pushes per-env secrets to the selected deployment with
-   `convex env set` (the wrapper selects dev vs prod via the same `--prod` switch). Model
-   it on astro-mate's `sync-r2-convex-env.sh`.
+   `convex env set`, routing each set through `convex-with-env.sh` (`--prod` selects
+   dev vs prod). Skips unset keys; syncs `CLERK_JWT_ISSUER_DOMAIN`,
+   `LIGHTHOUSE_WORKER_URL`, `LIGHTHOUSE_WORKER_SECRET`, `RESEND_API_KEY`,
+   `RESEND_FROM_EMAIL`, `CREDITS_SERVICE_SECRET_EZAUDIT`.
 
 ## Required deployment env vars
 
@@ -90,15 +112,36 @@ from the gitignored env files.
 
 ## Infrastructure
 
-`../infrastructure/convex` declares the Convex projects and their dev/prod deployments.
-Adding ezaudit requires an infra change (see [05-deploy-frontend](./05-deploy-frontend.md)
-and the infra recon report). Deploy keys and env vars stay out of Terraform state.
+`../infrastructure/convex` declares the Convex projects (`projects.tf`) and their
+dev/prod deployments (`deployments.tf`). The ezaudit project (`3209319`) plus
+`ezaudit_dev` and `ezaudit_prod` are declared and adopted by import — the infra
+change this spec called for has been made. Deploy keys and env vars stay out of
+Terraform state.
 
 ## Acceptance criteria
 
-- [ ] `pnpm convex:dev` watches, codegens, and pushes to the dev deployment only.
-- [ ] `pnpm convex:deploy` deploys to dev; `pnpm convex:deploy:prod` deploys to prod.
-- [x] Neither command is affected by a stray exported `CONVEX_DEPLOY_KEY`.
-- [ ] `pnpm convex:env:sync` / `:prod` set the correct deployment's env from the matching env file.
-- [ ] `npx convex ai-files install` output (`convex/_generated/ai/guidelines.md`) is committed.
-- [ ] Deploying prod requires passing `pnpm test` first (documented in the runbook).
+- [ ] `pnpm convex:dev` watches, codegens, and pushes to the dev deployment only. *(Wiring exists: `convex:dev` → `backend` `dev` → `convex dev`; live watch/push not exercised from repo evidence.)*
+- [ ] `pnpm convex:deploy` deploys to dev; `pnpm convex:deploy:prod` deploys to prod. *(Scripts exist and are wired: `backend` `deploy` / `deploy:prod` → `convex-with-env.sh` [+ `--prod`]; only the dev branch has ever been runnable here — `backend/.env.production` is absent.)*
+- [x] Neither command is affected by a stray exported `CONVEX_DEPLOY_KEY`. *(Proven by `exec env -i` in `convex-with-env.sh`; `CONVEX_DEPLOY_KEY` is set only inside the scrubbed env from the env file.)*
+- [ ] `pnpm convex:env:sync` / `:prod` set the correct deployment's env from the matching env file. *(Script exists and routes through the same wrapper via `--prod`, selecting `.env.local` / `.env.production` respectively; not yet run against a deployment from repo evidence.)*
+- [ ] `npx convex ai-files install` output (`convex/_generated/ai/guidelines.md`) is committed. *(Not satisfied: `backend/convex.json` sets `aiFiles.enabled: false`; no `ai/` dir under `convex/_generated/`, nothing in git history — see Shipped divergences.)*
+- [ ] Deploying prod requires passing `pnpm test` first (documented in the runbook). *(Not satisfied: no runbook doc in the repo; `.github/workflows/checks.yml` runs `pnpm test` in CI, but nothing gates the prod deploy on it.)*
+
+## Shipped divergences
+
+- **ai-files deliberately disabled.** `backend/convex.json` has
+  `{"aiFiles": {"enabled": false}}`; the acceptance criterion expecting
+  `convex/_generated/ai/guidelines.md` committed contradicts shipped config. The
+  requirement-vs-config conflict is left as-is here; the checkbox stays unchecked.
+- **Prod is provisioned.** The spec previously said prod was "not provisioned"
+  (`prod:<ezaudit-prod-ref>` placeholder). Terraform state shows
+  `prod:standing-malamute-74` adopted by import. This section reflects the shipped
+  state; the deployment table above is updated accordingly.
+- **Project naming.** Terraform state records the project as name/slug `ezaudit`
+  (project id `3209319`). The previously documented `ezaudit-91edc` CLI-suffixed
+  slug and the "empty `ezaudit` shell project to delete" note could not be
+  confirmed from any tracked file; the table now uses the state-verified name.
+- **Root `dev` label.** `concurrently -n convex,frontend …` (shipped) vs the
+  previously documented `-n backend,frontend` label — cosmetic, requirement unchanged.
+- **Extra `lint` script** in `backend/package.json` (`tsc --noEmit -p tsconfig.json`)
+  not previously listed in this spec's scripts block — now included above.
