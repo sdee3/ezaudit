@@ -173,8 +173,8 @@ importers:
   backend:
     dependencies:
       convex:
-        specifier: ^1.46.0
-        version: 1.46.0(react@18.3.1)
+        specifier: ^1.47.0
+        version: 1.47.0(@clerk/react@6.17.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
     devDependencies:
       '@edge-runtime/vm':
         specifier: ^5.0.0
@@ -184,7 +184,7 @@ importers:
         version: 26.6.5
       convex-test:
         specifier: ^0.0.61
-        version: 0.0.61(convex@1.46.0(react@18.3.1))
+        version: 0.0.61(convex@1.47.0(@clerk/react@6.17.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1))
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -210,8 +210,8 @@ importers:
         specifier: ^11.14.0
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       convex:
-        specifier: ^1.46.0
-        version: 1.46.0(@clerk/react@6.17.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
+        specifier: ^1.47.0
+        version: 1.47.0(@clerk/react@6.17.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       framer-motion:
         specifier: 11.18.2
         version: 11.18.2(@emotion/is-prop-valid@1.4.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1763,8 +1763,8 @@ packages:
     peerDependencies:
       convex: ^1.43.0
 
-  convex@1.46.0:
-    resolution: {integrity: sha512-dhBwDQTZDOhi5SUGAX17EWNehCdNq6/UFrSL0eLZuGfMkdsQbCVWVRZCzbZ5CF+/pgvoGxtApbEoTSipqL4JTw==}
+  convex@1.47.0:
+    resolution: {integrity: sha512-B1z/lOmex7i09NASq8+2WG9rZLzGXXOSkpwGOpaNIvOs4awyW4RMgpVBjt8r2wvvHwhEBEsOr2pGYpulnmAxYQ==}
     engines: {node: '>=20.0.0', npm: '>=7.0.0'}
     hasBin: true
     peerDependencies:
@@ -4848,28 +4848,17 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  convex-test@0.0.61(convex@1.46.0(react@18.3.1)):
+  convex-test@0.0.61(convex@1.47.0(@clerk/react@6.17.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)):
     dependencies:
-      convex: 1.46.0(react@18.3.1)
+      convex: 1.47.0(@clerk/react@6.17.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
 
-  convex@1.46.0(@clerk/react@6.17.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1):
+  convex@1.47.0(@clerk/react@6.17.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1):
     dependencies:
       esbuild: 0.27.0
       prettier: 3.9.10
       ws: 8.21.0
     optionalDependencies:
       '@clerk/react': 6.17.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react: 18.3.1
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-
-  convex@1.46.0(react@18.3.1):
-    dependencies:
-      esbuild: 0.27.0
-      prettier: 3.9.10
-      ws: 8.21.0
-    optionalDependencies:
       react: 18.3.1
     transitivePeerDependencies:
       - bufferutil
