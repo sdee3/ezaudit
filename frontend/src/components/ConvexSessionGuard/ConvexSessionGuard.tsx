@@ -51,7 +51,7 @@ function SessionLoading({
       zIndex={overlay ? 100 : undefined}
       background={overlay ? 'white' : undefined}
     >
-      <Spinner size="md" aria-label={label} />
+      <Spinner size="xl" thickness="4px" speed="0.65s" aria-label={label} />
       <Text fontSize="sm" color="gray.500">
         {label}
       </Text>
@@ -195,8 +195,7 @@ export function ConvexSessionGuard({ children }: ConvexSessionGuardProps) {
   )
   const coverPublic =
     publicRoute &&
-    ((!clerkLoaded && hadSession) ||
-      (Boolean(isSignedIn) && (handshakePending || pathname === '/')))
+    ((!clerkLoaded && hadSession) || (Boolean(isSignedIn) && handshakePending))
 
   return (
     <ConvexSessionContext.Provider value={{ queryReady }}>

@@ -4,6 +4,7 @@ import '@fontsource/open-sans/400.css'
 import '@fontsource/open-sans/700.css'
 import './styles/normalize.min.css'
 
+import { ChakraProvider } from '@chakra-ui/react'
 import { ClerkProvider, useAuth } from '@clerk/react'
 import { ConvexReactClient } from 'convex/react'
 import { ConvexProviderWithClerk } from 'convex/react-clerk'
@@ -17,6 +18,7 @@ import {
 } from './components'
 import { usesDirectClerkSignIn } from './lib/identity'
 import { App } from './App'
+import { theme } from './utils'
 import './print.css'
 
 /**
@@ -85,13 +87,16 @@ createRoot(root).render(
     >
       <ConvexProviderWithClerk client={convexClient} useAuth={useAuth}>
         {/* Router must wrap the tree: the session guard uses useLocation. */}
-        <BrowserRouter>
-          <ErrorBoundary title="EZ Audit ran into a problem">
-            <ConvexSessionGuard>
-              <App />
-            </ConvexSessionGuard>
-          </ErrorBoundary>
-        </BrowserRouter>
+        {/* Chakra wraps the guard so its loading and error UI get the theme. */}
+        <ChakraProvider theme={theme}>
+          <BrowserRouter>
+            <ErrorBoundary title="EZ Audit ran into a problem">
+              <ConvexSessionGuard>
+                <App />
+              </ConvexSessionGuard>
+            </ErrorBoundary>
+          </BrowserRouter>
+        </ChakraProvider>
       </ConvexProviderWithClerk>
     </ClerkProvider>
   </StrictMode>,

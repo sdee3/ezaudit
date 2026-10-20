@@ -1,4 +1,3 @@
-import { ChakraProvider } from '@chakra-ui/react'
 import { CookiesProvider } from 'react-cookie'
 import CookieConsent from 'react-cookie-consent'
 import { Link, Route, Routes } from 'react-router-dom'
@@ -15,61 +14,58 @@ import HomePage from './pages'
 import TermsConditions from './pages/terms-and-conditions'
 import { ROUTES, theme } from './utils'
 
+// ChakraProvider lives in main.tsx so the session guard can use the theme.
 export function App() {
   const { AuthContext, accessToken, setUserData, clearUser, user } =
     useAuthContext()
   const { PrintContext, isPrinting, setIsPrinting } = usePrintContext()
 
   return (
-    <ChakraProvider theme={theme}>
-      <CookiesProvider>
-        <PrintContext.Provider value={{ isPrinting, setIsPrinting }}>
-          <AuthContext.Provider
-            value={{ user, accessToken, setUserData, clearUser }}
-          >
-            <Layout>
-              <Routes>
-                <Route path={ROUTES.home} element={<HomePage />} />
-                <Route
-                  path={ROUTES.termsAndConditions}
-                  element={<TermsConditions />}
-                />
-                <Route path={ROUTES.ssoCallback} element={<SsoCallback />} />
-                <Route path={ROUTES.signIn} element={<SignInPage />} />
-                <Route path={ROUTES.dashboard} element={<DashboardPage />} />
-                <Route path={ROUTES.userAudits} element={<AuditsIndex />} />
-                <Route
-                  path="/dashboard/audits/:id"
-                  element={<AuditByIdOverview />}
-                />
-                <Route
-                  path={ROUTES.passwordReset}
-                  element={<PasswordResetPage />}
-                />
-                <Route path="*" element={<NoResults asError404 />} />
-              </Routes>
-            </Layout>
+    <CookiesProvider>
+      <PrintContext.Provider value={{ isPrinting, setIsPrinting }}>
+        <AuthContext.Provider
+          value={{ user, accessToken, setUserData, clearUser }}
+        >
+          <Layout>
+            <Routes>
+              <Route path={ROUTES.home} element={<HomePage />} />
+              <Route
+                path={ROUTES.termsAndConditions}
+                element={<TermsConditions />}
+              />
+              <Route path={ROUTES.ssoCallback} element={<SsoCallback />} />
+              <Route path={ROUTES.signIn} element={<SignInPage />} />
+              <Route path={ROUTES.dashboard} element={<DashboardPage />} />
+              <Route path={ROUTES.userAudits} element={<AuditsIndex />} />
+              <Route
+                path="/dashboard/audits/:id"
+                element={<AuditByIdOverview />}
+              />
+              <Route
+                path={ROUTES.passwordReset}
+                element={<PasswordResetPage />}
+              />
+              <Route path="*" element={<NoResults asError404 />} />
+            </Routes>
+          </Layout>
 
-            <CookieConsent
-              style={{ backgroundColor: theme.colors.primaryDark }}
-              buttonStyle={{
-                backgroundColor: theme.colors.white,
-                borderRadius: 4,
-                color: theme.colors.primaryDark,
-              }}
-            >
-              By continuing to use this site, you agree to our usage of
-              cookies for enhancing the user experience. See{' '}
-              <u>
-                <Link to={ROUTES.termsAndConditions}>
-                  Terms and Conditions
-                </Link>
-              </u>{' '}
-              for more information.
-            </CookieConsent>
-          </AuthContext.Provider>
-        </PrintContext.Provider>
-      </CookiesProvider>
-    </ChakraProvider>
+          <CookieConsent
+            style={{ backgroundColor: theme.colors.primaryDark }}
+            buttonStyle={{
+              backgroundColor: theme.colors.white,
+              borderRadius: 4,
+              color: theme.colors.primaryDark,
+            }}
+          >
+            By continuing to use this site, you agree to our usage of cookies
+            for enhancing the user experience. See{' '}
+            <u>
+              <Link to={ROUTES.termsAndConditions}>Terms and Conditions</Link>
+            </u>{' '}
+            for more information.
+          </CookieConsent>
+        </AuthContext.Provider>
+      </PrintContext.Provider>
+    </CookiesProvider>
   )
 }
