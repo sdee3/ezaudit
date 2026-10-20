@@ -21,3 +21,4 @@ service to deploy or authenticate for a single notification.
 - Convex env, per deployment: `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (an EZ Audit
   sender on the existing Resend domain). Prod sends from `ezaudit@sdee3.com`.
 - If the key is missing, log and skip. A failed email must not fail the audit.
+- Verified on prod 2026-10-20: the audit-ready email for `novinky.cz` reached the requester's inbox.

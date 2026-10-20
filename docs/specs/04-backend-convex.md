@@ -1,6 +1,6 @@
 # 04 — Backend (Convex)
 
-**Status:** `partial` (backend domain shipped and verified; the Lambda worker is deployed to dev in `us-east-1`, and its configuration was re-checked read-only on 2026-10-20. The prod worker wiring and the D6 import remain open; see Shipped divergences).
+**Status:** `partial` (backend domain shipped and verified; the Lambda worker is deployed to dev in `us-east-1`, and its configuration was re-checked read-only on 2026-10-20. The D6 import remains open. Prod worker wiring is verified as of 2026-10-20; see Shipped divergences).
 
 Dev deployment `dev:bold-orca-397` (project `ezaudit`, id `3209319`) has the schema, functions, and tests. Auth is enforced on owner-only functions. The dev deployment is seeded with 4 sample audits. Real-time dashboard updates are wired at the code level (reactive `useQuery`); no browser-runtime session was recorded to confirm it live.
 
@@ -27,7 +27,7 @@ The frontend reaches this backend only through generated Convex artifacts and sh
 | Pusher real-time | Convex reactive queries (`useQuery` auto-updates) | ✅ |
 | Laravel Echo / `useEcho` | delete; use `useQuery` subscriptions | ✅ (no Echo consumer remains) |
 | Snappy server PDF | browser print ([ADR 0002](../adr/0002-pdf-browser-print.md)) | ✅ (`AuditResult.tsx` → `window.print()`) |
-| Lighthouse via queue job | AWS Lambda container + Function URL ([ADR 0001](../adr/0001-lighthouse-on-lambda.md)) | ◐ client shipped; worker deployed to dev in `us-east-1`; prod not wired |
+| Lighthouse via queue job | AWS Lambda container + Function URL ([ADR 0001](../adr/0001-lighthouse-on-lambda.md)) | ✅ client shipped; worker wired to dev and prod in `us-east-1` (prod verified 2026-10-20) |
 | Laravel mail | Resend from the Convex action ([ADR 0003](../adr/0003-email-resend.md)) | ✅ (no-op-logged when keys unset) |
 | MySQL/Redis/PHP in Docker | removed entirely | ✅ |
 
@@ -177,6 +177,8 @@ line 56).
 See [ADR 0003](../adr/0003-email-resend.md). Shipped exactly as decided:
 `lib/email.ts` never throws / rethrows.
 
+Verified on prod 2026-10-20: the audit-ready email for `novinky.cz` reached the requester's inbox.
+
 ## Data migration
 
 **Accepted (D6):** migrate. Export the Laravel `audits` rows to JSON and import them
@@ -202,13 +204,14 @@ Code or runtime behaviour that differs from the requirement as written above
    execution environment only; the shipped code adds a documented local fallback so
    the pipeline completes end to end in dev. Without the flag a missing URL fails the
    audit. The remote path is exercised in tests by stubbing the env var and `fetch`.
-2. **Lambda worker is deployed to dev, not prod** —
+2. **Lambda worker is wired to dev and prod** —
    `workers/lighthouse-worker/` contains the arm64 container, the handler, and
    `provision.sh`. The function `ezaudit-lighthouse-worker` runs in `us-east-1`, and
    the dev deployment returns real Lighthouse scores. The 2026-10-20 read-only AWS check
    confirmed `Active`, arm64, 2048 MB, 120 s, and `AWS_IAM`. No Terraform stack or image
-   publish workflow exists yet. The prod deployment (`standing-malamute-74`) still
-   needs `LIGHTHOUSE_WORKER_URL` and the caller credentials.
+   publish workflow exists yet. The prod deployment (`standing-malamute-74`) has
+   `LIGHTHOUSE_WORKER_URL` and the caller credentials, verified 2026-10-20. A prod audit
+   returned real scores that day.
 3. **D6 migration not executed** — `audits.importLegacy` has never been written or
    run; no legacy rows have been imported to either deployment.
 4. **`userId` nullability** — the original data-model table said `string`; shipped
@@ -222,6 +225,9 @@ Code or runtime behaviour that differs from the requirement as written above
    Functions table called it "optional", which is accurate; the only nuance is that
    forbidden reads return `null` rather than an error, deliberately matching the
    "existence is not leaked" behaviour. Recorded here so the contract is explicit.
+7. **Domain scheme added at the worker call** — `audits.submit` stores the domain as the
+   user typed it, for example `novinky.cz`. `runAudit` adds `https://` when the scheme is
+   missing (`toWorkerUrl`). The worker needs a full URL. The audit keeps the typed domain.
 
 ## Acceptance criteria
 

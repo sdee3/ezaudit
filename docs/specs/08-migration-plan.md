@@ -112,7 +112,7 @@ it is `../astro-mate`, `../identity`, and `../infrastructure`.
 - [x] D1 worker is live: `ezaudit-lighthouse-worker` runs in `us-east-1` and the dev
       deployment returns real Lighthouse scores. `lighthouseWorker.ts` fails when
       `LIGHTHOUSE_WORKER_URL` is unset unless `LIGHTHOUSE_ALLOW_SEEDED_SCORES` is
-      `"true"` — see Shipped divergences. Prod still needs its environment values.
+      `"true"` — see Shipped divergences. Prod environment values are set (verified 2026-10-20).
 - Gate: dashboard is fully driven by Convex queries ([x], `2c884dd`); submissions flow
   queued → done in real time ([~] pipeline + retry proven by tests, real-time rendering
   not yet attested); tests pass ([x] 15 backend cases).
@@ -172,8 +172,9 @@ it is `../astro-mate`, `../identity`, and `../infrastructure`.
 1. [x] Prod frontend + Convex deployed: first production deploy verified live
        (`0bdd9b2`, 2026-10-14); prod Convex pushed with the credits work (`f9fef5e`).
 2. [ ] Structured smoke run (home audit submit, hub sign-in, dashboard list, audit
-       detail, public share) is not recorded; a real-time end-to-end audit has not been
-       attested (blocked in part by the missing Lighthouse worker).
+       detail, public share) is not recorded. A prod audit completed on 2026-10-20
+       (`novinky.cz`, `j97e6ddfb7qa5s150sb1azr7418gm2yj`), and its audit-ready email
+       arrived. The Lighthouse worker no longer blocks this box.
 3. [x] DNS/alias handled by the infra stack; `ezaudit.sdee3.com` verified live.
 4. [~] Laravel decommission is moot for this tree: no Laravel files were ever tracked on
        `master`; the Laravel code is archived on the `feature/laravel-revert` branch
@@ -208,9 +209,9 @@ production.)
 3. **`next/head` replaced by an in-house `Head` component**, not `react-helmet` (the
    spec allowed "or equivalent"); Google Analytics is injected at build time via a Vite
    `transformIndexHtml` plugin instead of a runtime conditional.
-4. **D1 is live on dev only.** `ezaudit-lighthouse-worker` runs in the AWS account,
+4. **D1 is live on dev and prod.** `ezaudit-lighthouse-worker` runs in the AWS account,
    and the dev Convex deployment returns real Lighthouse scores. The prod deployment
-   still needs `LIGHTHOUSE_WORKER_URL` and the caller credentials. A missing URL now
+   has `LIGHTHOUSE_WORKER_URL` and the caller credentials, verified 2026-10-20. A missing URL now
    fails the audit unless `LIGHTHOUSE_ALLOW_SEEDED_SCORES` is `"true"`. ADR 0001's
    decision stands.
 5. **Legacy data import not executed.** `audits.importLegacy` (ADR 0004) is not
