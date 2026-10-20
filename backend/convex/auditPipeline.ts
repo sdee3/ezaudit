@@ -45,6 +45,7 @@ async function performAttempt(
     await ctx.runMutation(internal.auditPipeline.markDone, {
       auditId,
       attempt,
+      retryCycle: audit.retryCycle ?? 0,
       audit_result: scores,
       findings,
       workerRequestId,
@@ -57,6 +58,7 @@ async function performAttempt(
     await ctx.runMutation(internal.auditPipeline.markError, {
       auditId,
       attempt,
+      retryCycle: audit.retryCycle ?? 0,
       error: message,
     })
     if (attempt < MAX_ATTEMPTS) {
@@ -103,28 +105,35 @@ export const getAudit = internalQuery({
 
 export const countAttempts = internalQuery({
   args: { auditId: v.id("audits") },
-  handler: async (ctx, args) =>
-    (
-      await ctx.db
-        .query("auditJobs")
-        .withIndex("by_auditId", (q) => q.eq("auditId", args.auditId))
-        .collect()
-    ).length,
+  handler: async (ctx, args) => {
+    const audit = await ctx.db.get(args.auditId)
+    if (audit === null) return 0
+    const cycle = audit.retryCycle ?? 0
+    const jobs = await ctx.db
+      .query("auditJobs")
+      .withIndex("by_auditId", (q) => q.eq("auditId", args.auditId))
+      .collect()
+    return jobs.filter((job) => (job.retryCycle ?? 0) === cycle).length
+  },
 })
 
 /** Marks the audit + a new auditJobs row running. Returns the attempt number. */
 export const markRunning = internalMutation({
   args: { auditId: v.id("audits") },
   handler: async (ctx, args) => {
+    const audit = await ctx.db.get(args.auditId)
+    if (audit === null) throw new Error("Audit not found")
+    const retryCycle = audit.retryCycle ?? 0
     const jobs = await ctx.db
       .query("auditJobs")
       .withIndex("by_auditId", (q) => q.eq("auditId", args.auditId))
       .collect()
-    const attempt = jobs.length + 1
+    const attempt = jobs.filter((job) => (job.retryCycle ?? 0) === retryCycle).length + 1
     const now = Date.now()
 
     await ctx.db.insert("auditJobs", {
       auditId: args.auditId,
+      retryCycle,
       attempt,
       startedAt: now,
       status: "running",
@@ -143,6 +152,7 @@ export const markDone = internalMutation({
   args: {
     auditId: v.id("audits"),
     attempt: v.number(),
+    retryCycle: v.number(),
 audit_result: v.object({
       accessibility: v.object({ score: v.number() }),
       bestPractices: v.object({ score: v.number() }),
@@ -164,6 +174,7 @@ audit_result: v.object({
     await updateJobRow(ctx, args.auditId, args.attempt, {
       finishedAt: now,
       status: "done",
+      retryCycle: args.retryCycle,
       workerRequestId: args.workerRequestId,
     })
   },
@@ -173,6 +184,7 @@ export const markError = internalMutation({
   args: {
     auditId: v.id("audits"),
     attempt: v.number(),
+    retryCycle: v.number(),
     error: v.string(),
   },
   handler: async (ctx, args) => {
@@ -185,6 +197,7 @@ export const markError = internalMutation({
     await updateJobRow(ctx, args.auditId, args.attempt, {
       finishedAt: now,
       status: "error",
+      retryCycle: args.retryCycle,
       error: args.error,
     })
   },
@@ -194,14 +207,15 @@ async function updateJobRow(
   ctx: MutationCtx,
   auditId: Id<"audits">,
   attempt: number,
-  patch: { finishedAt: number; status: "done" | "error"; error?: string; workerRequestId?: string },
+  patch: { finishedAt: number; status: "done" | "error"; retryCycle: number; error?: string; workerRequestId?: string },
 ) {
-  const job = await ctx.db
+  const jobs = await ctx.db
     .query("auditJobs")
     .withIndex("by_auditId", (q) => q.eq("auditId", auditId))
     .filter((q) => q.eq(q.field("attempt"), attempt))
-    .first()
-  if (job !== null) {
+    .collect()
+  const job = jobs.find((row) => (row.retryCycle ?? 0) === patch.retryCycle)
+  if (job) {
     await ctx.db.patch(job._id, patch)
   }
 }

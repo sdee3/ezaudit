@@ -1,5 +1,11 @@
 import {
   Alert as ChakraAlert,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
   AlertIcon,
   Box,
   Button,
@@ -11,8 +17,9 @@ import {
   Progress,
   Switch,
   Text,
+  useDisclosure,
 } from '@chakra-ui/react'
-import { ChangeEvent, useContext, useMemo } from 'react'
+import { ChangeEvent, useContext, useMemo, useRef } from 'react'
 import { FiFileText } from 'react-icons/fi'
 
 import { AuditResultParsed } from '../../models'
@@ -25,11 +32,22 @@ import { ShareAuditURLModal } from './ShareAuditURLModal'
 interface Props {
   audit: AuditResultParsed
   handleOnSwitchChange: (e: ChangeEvent<HTMLInputElement>) => void
+  retryEligible: boolean
+  handleRetry: () => void
+  handleDelete: () => void
 }
 
-export const AuditResult = ({ audit, handleOnSwitchChange }: Props) => {
+export const AuditResult = ({
+  audit,
+  handleOnSwitchChange,
+  retryEligible,
+  handleRetry,
+  handleDelete,
+}: Props) => {
   const { isPrinting, setIsPrinting } = useContext(PrintContext)
   const { user } = useContext(AuthContext)
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const cancelRef = useRef<HTMLButtonElement>(null)
 
   // Same rule as the backend (audits.get, audits.setVisibility): owner means userId match.
   const isUserOwnerOfAudit = useMemo(
@@ -114,8 +132,45 @@ export const AuditResult = ({ audit, handleOnSwitchChange }: Props) => {
           >
             <FiFileText /> <Text ml={2}>Export to PDF</Text>
           </Button>
+          {isUserOwnerOfAudit && retryEligible && (
+            <Button onClick={handleRetry} colorScheme="blue" width="fit-content">
+              Retry audit
+            </Button>
+          )}
+          {isUserOwnerOfAudit && (
+            <Button
+              onClick={onOpen}
+              colorScheme="red"
+              variant="outline"
+              width="fit-content"
+            >
+              Delete audit
+            </Button>
+          )}
         </Flex>
       </Box>
+      <AlertDialog
+        isOpen={isOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader>Delete this audit?</AlertDialogHeader>
+            <AlertDialogBody>
+              This deletes the report and its attempt history. Shared report links will stop working.
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onClose}>
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={handleDelete} ml={3}>
+                Delete audit
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
       <hr />
       {audit.status !== 'done' && (
         <ChakraAlert

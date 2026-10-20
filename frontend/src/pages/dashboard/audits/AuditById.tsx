@@ -39,10 +39,16 @@ const AuditByIdOverview = () => {
   const { fetchEmailDataFromUrl, parsedEmail, clearParsedEmail } = useApi()
 
   const toggleVisibility = useMutation(api.audits.setVisibility)
+  const removeAudit = useMutation(api.audits.remove)
+  const retryAudit = useMutation(api.audits.retry)
   // The server rejects malformed ids by returning null, so the id goes through as-is.
   const audit = useQuery(
     api.audits.get,
     auditId && !parsedEmail ? { id: auditId } : 'skip'
+  )
+  const retryEligible = useQuery(
+    api.audits.retryEligibility,
+    audit && user ? { id: audit._id } : 'skip'
   )
 
   const metaTitle = `EZ Audit | SEO Audit result of ${audit?.domain ?? ''}`
@@ -83,6 +89,12 @@ const AuditByIdOverview = () => {
     await toggleVisibility({ id: audit._id })
   }
 
+  const handleDelete = async () => {
+    if (!audit) return
+    await removeAudit({ id: audit._id })
+    navigate(ROUTES.userAudits)
+  }
+
   useEffect(() => {
     if (!user && emailToken) fetchEmailDataFromUrl(emailToken)
     if (parsedEmail) navigate(ROUTES.audit(auditId))
@@ -117,6 +129,9 @@ const AuditByIdOverview = () => {
           <AuditResult
             audit={audit}
             handleOnSwitchChange={handleOnSwitchChange}
+            retryEligible={retryEligible === true}
+            handleRetry={() => retryAudit({ id: audit._id })}
+            handleDelete={handleDelete}
           />
         )}
       </Container>

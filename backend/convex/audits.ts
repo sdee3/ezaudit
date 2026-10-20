@@ -122,3 +122,65 @@ export const setVisibility = mutation({
     return await ctx.db.get(args.id)
   },
 })
+
+/** Remove an audit and its attempt history. Shared report URLs use the audit id. */
+export const remove = mutation({
+  args: { id: v.id("audits") },
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx)
+    const audit = await ctx.db.get(args.id)
+    if (audit === null || audit.userId !== userId) throw new Error("Not found")
+
+    const jobs = await ctx.db
+      .query("auditJobs")
+      .withIndex("by_auditId", (q) => q.eq("auditId", args.id))
+      .collect()
+    for (const job of jobs) await ctx.db.delete(job._id)
+    await ctx.db.delete(args.id)
+  },
+})
+
+/** Owner-only retry eligibility after all automatic attempts fail. */
+export const retryEligibility = query({
+  args: { id: v.id("audits") },
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx)
+    const audit = await ctx.db.get(args.id)
+    if (audit === null || audit.userId !== userId || audit.status !== "error") return false
+    const jobs = await ctx.db
+      .query("auditJobs")
+      .withIndex("by_auditId", (q) => q.eq("auditId", args.id))
+      .collect()
+    const cycle = audit.retryCycle ?? 0
+    return jobs.filter((job) => (job.retryCycle ?? 0) === cycle).length >= 3
+  },
+})
+
+/** Start a fresh three-attempt cycle without charging credits. */
+export const retry = mutation({
+  args: { id: v.id("audits") },
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx)
+    const audit = await ctx.db.get(args.id)
+    if (audit === null || audit.userId !== userId) throw new Error("Not found")
+    if (audit.status !== "error") throw new Error("Audit is not eligible for retry")
+
+    const cycle = audit.retryCycle ?? 0
+    const jobs = await ctx.db
+      .query("auditJobs")
+      .withIndex("by_auditId", (q) => q.eq("auditId", args.id))
+      .collect()
+    if (jobs.filter((job) => (job.retryCycle ?? 0) === cycle).length < 3) {
+      throw new Error("Audit is not eligible for retry")
+    }
+
+    await ctx.db.patch(args.id, {
+      retryCycle: cycle + 1,
+      status: "queued",
+      audit_result: null,
+      error: undefined,
+      updatedAt: Date.now(),
+    })
+    await ctx.scheduler.runAfter(0, internal.auditPipeline.run, { auditId: args.id })
+  },
+})

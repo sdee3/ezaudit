@@ -49,6 +49,8 @@ export const auditsTables = {
     date_of_request: v.number(),
     /** Populated on failure. */
     error: v.optional(v.string()),
+    /** User retry cycle. Older rows start in cycle 0. */
+    retryCycle: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

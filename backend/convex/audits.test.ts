@@ -182,6 +182,95 @@ test("setVisibility requires auth and ownership", async () => {
   expect(updated).toMatchObject({ is_public: true })
 })
 
+test("remove requires the owner and deletes the report and its attempt history", async () => {
+  const t = createConvexTest()
+  const id = await insertAudit(t, { userId: "user_1", is_public: true })
+  await t.run(async (ctx) => {
+    await ctx.db.insert("auditJobs", {
+      auditId: id,
+      attempt: 1,
+      startedAt: 1,
+      status: "error",
+    })
+  })
+
+  await expect(t.mutation(api.audits.remove, { id })).rejects.toThrowError("Not authenticated")
+  await expect(
+    t.withIdentity({ subject: "user_2" }).mutation(api.audits.remove, { id }),
+  ).rejects.toThrowError("Not found")
+  expect(await t.query(api.audits.get, { id })).toMatchObject({ is_public: true })
+
+  await t.withIdentity({ subject: "user_1" }).mutation(api.audits.remove, { id })
+  expect(await t.query(api.audits.get, { id })).toBeNull()
+  expect(await t.run(async (ctx) => await ctx.db.query("auditJobs").collect())).toEqual([])
+})
+
+test("retry eligibility requires an owned final failure", async () => {
+  const t = createConvexTest()
+  const id = await insertAudit(t, { userId: "user_1", status: "error" })
+  const asOwner = t.withIdentity({ subject: "user_1" })
+  const addAttempts = async (count: number) => {
+    await t.run(async (ctx) => {
+      for (let attempt = 1; attempt <= count; attempt++) {
+        await ctx.db.insert("auditJobs", {
+          auditId: id,
+          attempt,
+          startedAt: attempt,
+          status: "error",
+        })
+      }
+    })
+  }
+
+  await expect(t.query(api.audits.retryEligibility, { id })).rejects.toThrowError("Not authenticated")
+  expect(await t.withIdentity({ subject: "user_2" }).query(api.audits.retryEligibility, { id })).toBe(false)
+  expect(await asOwner.query(api.audits.retryEligibility, { id })).toBe(false)
+  await addAttempts(2)
+  expect(await asOwner.query(api.audits.retryEligibility, { id })).toBe(false)
+  await expect(asOwner.mutation(api.audits.retry, { id })).rejects.toThrowError(
+    "Audit is not eligible for retry",
+  )
+  await addAttempts(1)
+  expect(await asOwner.query(api.audits.retryEligibility, { id })).toBe(true)
+})
+
+test("an eligible retry starts a fresh three-attempt cycle without a credit debit", async () => {
+  vi.useFakeTimers()
+  vi.stubEnv("LIGHTHOUSE_ALLOW_SEEDED_SCORES", "true")
+  try {
+    const t = createConvexTest()
+    const id = await insertAudit(t, { userId: "user_1", status: "error" })
+    await t.run(async (ctx) => {
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        await ctx.db.insert("auditJobs", {
+          auditId: id,
+          attempt,
+          startedAt: attempt,
+          finishedAt: attempt,
+          status: "error",
+        })
+      }
+    })
+
+    await t.withIdentity({ subject: "user_1" }).mutation(api.audits.retry, { id })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+
+    const audit = await t.run(async (ctx) => await ctx.db.get(id))
+    expect(audit).toMatchObject({ status: "done", retryCycle: 1 })
+    const jobs = await t.run(async (ctx) =>
+      await ctx.db.query("auditJobs").withIndex("by_auditId", (q) => q.eq("auditId", id)).collect(),
+    )
+    expect(jobs).toHaveLength(4)
+    expect(jobs.filter((job) => job.retryCycle === 1)).toMatchObject([
+      { attempt: 1, status: "done" },
+    ])
+    // EZ Audit has no paid debit mutation. Retry only starts the new pipeline cycle.
+  } finally {
+    vi.unstubAllEnvs()
+    vi.useRealTimers()
+  }
+})
+
 test("pipeline marks audits error and retries up to 3 attempts when the worker fails", async () => {
   vi.useFakeTimers()
   vi.stubEnv("LIGHTHOUSE_WORKER_URL", "https://worker.lambda-url.us-east-1.on.aws/run")

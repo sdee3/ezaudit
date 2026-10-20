@@ -8,6 +8,8 @@ import { v } from "convex/values"
 export const auditJobsTables = {
   auditJobs: defineTable({
     auditId: v.id("audits"),
+    /** Retry cycle for this attempt. Older rows belong to cycle 0. */
+    retryCycle: v.optional(v.number()),
     /** 1-based attempt counter for this audit. */
     attempt: v.number(),
     startedAt: v.number(),
