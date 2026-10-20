@@ -109,7 +109,7 @@ Set on the ezaudit Convex deployments (dev and prod), via `convex env set` / das
 | `LIGHTHOUSE_AWS_ACCESS_KEY_ID` | caller key ID if enabled | required dedicated worker caller key ID |
 | `LIGHTHOUSE_AWS_SECRET_ACCESS_KEY` | caller key secret if enabled | required dedicated worker caller secret |
 | `LIGHTHOUSE_AWS_SESSION_TOKEN` | optional for temporary credentials | optional for temporary credentials |
-| `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | not set (email skipped and logged) | not set (email skipped and logged) |
+| `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | not set (email skipped and logged) | set 2026-10-20, sender `ezaudit@sdee3.com` |
 | `CREDITS_SERVICE_SECRET_EZAUDIT` | set 2026-10 (credits display adopted; matches identity dev) | set 2026-10 (matches identity prod) |
 
 `LIGHTHOUSE_WORKER_URL`, `LIGHTHOUSE_AWS_ACCESS_KEY_ID`, and
