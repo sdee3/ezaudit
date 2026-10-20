@@ -25,6 +25,7 @@ export const Footer = () => {
             <Text
               color="blue.600"
               display={isPrinting ? 'none' : 'block'}
+              className="print-hidden"
               fontWeight="bold"
               cursor="pointer"
             >

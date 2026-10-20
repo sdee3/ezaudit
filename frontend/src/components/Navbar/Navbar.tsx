@@ -34,6 +34,7 @@ export const Navbar = () => {
             <Flex
               alignItems="center"
               gap="4"
+              className="print-hidden"
               visibility={isPrinting ? 'hidden' : 'visible'}
             >
               <CreditsBadge />

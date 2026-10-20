@@ -11,6 +11,7 @@ import {
 } from './components'
 import { usesDirectClerkSignIn } from './lib/identity'
 import { App } from './App'
+import './print.css'
 
 /**
  * Provider composition per docs/specs/03-identity-auth.md, extended with the

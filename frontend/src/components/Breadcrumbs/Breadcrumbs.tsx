@@ -25,6 +25,7 @@ export const Breadcrumbs = ({ links }: Props) => {
       mt="-10"
       shadow="md"
       display={isPrinting ? 'none' : 'block'}
+      className="print-hidden"
     >
       <Container maxW="container.xl">
         <Flex alignItems="center">

@@ -37,11 +37,11 @@ export const AuditResult = ({ audit, handleOnSwitchChange }: Props) => {
   const { isPrinting, setIsPrinting } = useContext(PrintContext)
   const { user } = useContext(AuthContext)
 
-  const isUserOwnerOfAudit = useMemo(() => {
-    if (!audit?.email || !user?.email) return false
-
-    return user.email === audit.email
-  }, [audit?.email, user?.email])
+  // Same rule as the backend (audits.get, audits.setVisibility): owner means userId match.
+  const isUserOwnerOfAudit = useMemo(
+    () => !!user && audit.userId === user.id,
+    [audit.userId, user]
+  )
 
   const shouldDisplayOptions = useMemo(
     () => !isPrinting && isUserOwnerOfAudit,
@@ -86,7 +86,11 @@ export const AuditResult = ({ audit, handleOnSwitchChange }: Props) => {
         {new Date(audit.date_of_request).toString()}
       </Text>
       {!isPrinting && <hr />}
-      <Box my={4} display={shouldDisplayOptions ? 'block' : 'none'}>
+      <Box
+        my={4}
+        className="print-hidden"
+        display={shouldDisplayOptions ? 'block' : 'none'}
+      >
         <Heading as="h3" size="lg" mb={4}>
           Options
         </Heading>

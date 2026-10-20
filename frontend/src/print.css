@@ -1,0 +1,7 @@
+/* Print output is the audit report. Hide app chrome that is not part of it. */
+@media print {
+  .print-hidden,
+  .CookieConsent {
+    display: none !important;
+  }
+}
