@@ -12,7 +12,7 @@ import {
 } from '@chakra-ui/react'
 import { useQuery } from 'convex/react'
 import { useContext } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 import { api } from 'convex/_generated/api'
 
@@ -44,6 +44,7 @@ const scoreCell = (
 ) => (audit_result === null ? '—' : Math.ceil(audit_result[category].score * 100))
 
 const AuditsIndex = () => {
+  const navigate = useNavigate()
   const { user } = useContext(AuthContext)
   // Reactive subscription: the table updates live as audits progress.
   const audits = useQuery(api.audits.listMine, user ? {} : 'skip')
@@ -75,7 +76,7 @@ const AuditsIndex = () => {
         </Heading>
         <Text mb="4">Disclaimer: All scores are on a scale of 0 to 100.</Text>
         <Box overflowX="scroll">
-          <Table variant="striped" colorScheme="blue">
+          <Table width="100%" variant="striped" colorScheme="blue">
             <Thead>
               <Tr>
                 <Th>Domain</Th>
@@ -87,23 +88,33 @@ const AuditsIndex = () => {
             </Thead>
             <Tbody>
               {audits.map(audit => (
-                <Link key={audit._id} to={ROUTES.audit(audit._id)}>
-                  <Tr cursor="pointer">
-                    <Td>
-                      <a
-                        href={audit.domain}
-                        rel="noopener noreferrer"
-                        target="_blank"
-                      >
-                        {audit.domain}
-                      </a>
-                    </Td>
-                    <Td>{scoreCell(audit.audit_result, 'accessibility')}</Td>
-                    <Td>{scoreCell(audit.audit_result, 'bestPractices')}</Td>
-                    <Td>{scoreCell(audit.audit_result, 'performance')}</Td>
-                    <Td>{scoreCell(audit.audit_result, 'seo')}</Td>
-                  </Tr>
-                </Link>
+                <Tr
+                  key={audit._id}
+                  cursor="pointer"
+                  role="link"
+                  tabIndex={0}
+                  onClick={() => navigate(ROUTES.audit(audit._id))}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') {
+                      navigate(ROUTES.audit(audit._id))
+                    }
+                  }}
+                >
+                  <Td>
+                    <a
+                      href={audit.domain}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                      onClick={event => event.stopPropagation()}
+                    >
+                      {audit.domain}
+                    </a>
+                  </Td>
+                  <Td>{scoreCell(audit.audit_result, 'accessibility')}</Td>
+                  <Td>{scoreCell(audit.audit_result, 'bestPractices')}</Td>
+                  <Td>{scoreCell(audit.audit_result, 'performance')}</Td>
+                  <Td>{scoreCell(audit.audit_result, 'seo')}</Td>
+                </Tr>
               ))}
             </Tbody>
           </Table>
