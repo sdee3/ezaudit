@@ -14,6 +14,7 @@ import type * as lib_auth from "../lib/auth.js";
 import type * as lib_boundary from "../lib/boundary.js";
 import type * as lib_email from "../lib/email.js";
 import type * as lib_lighthouse from "../lib/lighthouse.js";
+import type * as lighthouseWorker from "../lighthouseWorker.js";
 import type * as schema_auditJobs from "../schema/auditJobs.js";
 import type * as schema_audits from "../schema/audits.js";
 
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   "lib/boundary": typeof lib_boundary;
   "lib/email": typeof lib_email;
   "lib/lighthouse": typeof lib_lighthouse;
+  lighthouseWorker: typeof lighthouseWorker;
   "schema/auditJobs": typeof schema_auditJobs;
   "schema/audits": typeof schema_audits;
 }>;

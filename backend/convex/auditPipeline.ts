@@ -7,7 +7,6 @@ import {
 import { internal } from "./_generated/api"
 import type { Id } from "./_generated/dataModel"
 import type { ActionCtx, MutationCtx } from "./_generated/server"
-import { runAudit } from "./lib/lighthouse"
 import { sendAuditReadyEmail } from "./lib/email"
 
 /**
@@ -38,7 +37,10 @@ async function performAttempt(
   const attempt = await ctx.runMutation(internal.auditPipeline.markRunning, { auditId })
 
   try {
-    const { scores, workerRequestId } = await runAudit(audit.domain)
+    const { scores, workerRequestId } = await ctx.runAction(
+      internal.lighthouseWorker.runAudit,
+      { domain: audit.domain },
+    )
     await ctx.runMutation(internal.auditPipeline.markDone, {
       auditId,
       attempt,

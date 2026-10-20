@@ -21,6 +21,9 @@ KEYS=(
   CLERK_JWT_ISSUER_DOMAIN
   LIGHTHOUSE_WORKER_URL
   LIGHTHOUSE_WORKER_SECRET
+  LIGHTHOUSE_AWS_ACCESS_KEY_ID
+  LIGHTHOUSE_AWS_SECRET_ACCESS_KEY
+  LIGHTHOUSE_AWS_SESSION_TOKEN
   RESEND_API_KEY
   RESEND_FROM_EMAIL
   CREDITS_SERVICE_SECRET_EZAUDIT
@@ -35,10 +38,11 @@ for key in "${KEYS[@]}"; do
   fi
   set_any=true
   echo "Setting Convex env ${key}..."
+  # Pass the value on stdin so it never appears in the echoed CLI command.
   if [[ "${USE_PROD}" == true ]]; then
-    bash "${BACKEND_ROOT}/scripts/convex-with-env.sh" --prod env set "${key}" "${val}"
+    printf '%s' "${val}" | bash "${BACKEND_ROOT}/scripts/convex-with-env.sh" --prod env set "${key}"
   else
-    bash "${BACKEND_ROOT}/scripts/convex-with-env.sh" env set "${key}" "${val}"
+    printf '%s' "${val}" | bash "${BACKEND_ROOT}/scripts/convex-with-env.sh" env set "${key}"
   fi
 done
 

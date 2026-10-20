@@ -2,6 +2,8 @@ import { expect, test, vi } from "vitest"
 import { api, internal } from "./_generated/api"
 import type { Id } from "./_generated/dataModel"
 import { createConvexTest } from "../test/createConvexTest"
+import { allowsSeededScores } from "./lighthouseWorker"
+import { parseWorkerResponse, seededScores } from "./lib/lighthouse"
 
 /**
  * Co-located convex-test suite for the public audits API (spec 07).
@@ -77,6 +79,9 @@ test("submit validates the email", async () => {
 
 test("submit schedules the pipeline run", async () => {
   vi.useFakeTimers()
+  // The pipeline reaches `done` through the seeded fallback (spec 04).
+  vi.stubEnv("LIGHTHOUSE_ALLOW_SEEDED_SCORES", "true")
+
   const t = createConvexTest()
 
   await t.mutation(api.audits.submit, VALID)
@@ -89,6 +94,7 @@ test("submit schedules the pipeline run", async () => {
   expect(jobs).toHaveLength(1)
   expect(jobs[0]).toMatchObject({ attempt: 1, status: "done" })
 
+  vi.unstubAllEnvs()
   vi.useRealTimers()
 })
 
@@ -163,7 +169,9 @@ test("setVisibility requires auth and ownership", async () => {
 
 test("pipeline marks audits error and retries up to 3 attempts when the worker fails", async () => {
   vi.useFakeTimers()
-  vi.stubEnv("LIGHTHOUSE_WORKER_URL", "https://worker.example/run")
+  vi.stubEnv("LIGHTHOUSE_WORKER_URL", "https://worker.lambda-url.us-east-1.on.aws/run")
+  vi.stubEnv("LIGHTHOUSE_AWS_ACCESS_KEY_ID", "test-access-key")
+  vi.stubEnv("LIGHTHOUSE_AWS_SECRET_ACCESS_KEY", "test-secret-key")
   const failingFetch = vi.fn(async () => {
     throw new Error("worker unreachable")
   })
@@ -193,12 +201,92 @@ test("pipeline marks audits error and retries up to 3 attempts when the worker f
 })
 
 test("internal.auditPipeline.retry is exposed for bounded retries", async () => {
-  const t = createConvexTest()
-  const id = await insertAudit(t, { status: "error", userId: "user_1" })
+  // Retries reach `done` through the seeded fallback (spec 04).
+  vi.stubEnv("LIGHTHOUSE_ALLOW_SEEDED_SCORES", "true")
 
-  // 0 recorded attempts + audit in error state → retry performs a full attempt.
-  await t.action(internal.auditPipeline.retry, { auditId: id as Id<"audits"> })
+  try {
+    const t = createConvexTest()
+    const id = await insertAudit(t, { status: "error", userId: "user_1" })
 
-  const audit = await t.run(async (ctx) => await ctx.db.get(id as Id<"audits">))
-  expect(audit).toMatchObject({ status: "done" })
+    // 0 recorded attempts + audit in error state → retry performs a full attempt.
+    await t.action(internal.auditPipeline.retry, { auditId: id as Id<"audits"> })
+
+    const audit = await t.run(async (ctx) => await ctx.db.get(id as Id<"audits">))
+    expect(audit).toMatchObject({ status: "done" })
+  } finally {
+    vi.unstubAllEnvs()
+  }
+})
+
+/**
+ * Seeded-score guard: invented scores must never be reported unless the
+ * deployment explicitly opts in with LIGHTHOUSE_ALLOW_SEEDED_SCORES=true.
+ */
+
+test("allowsSeededScores is true only for the literal \"true\" flag", () => {
+  expect(allowsSeededScores({})).toBe(false)
+  expect(allowsSeededScores({ LIGHTHOUSE_ALLOW_SEEDED_SCORES: "" })).toBe(false)
+  expect(allowsSeededScores({ LIGHTHOUSE_ALLOW_SEEDED_SCORES: "1" })).toBe(false)
+  expect(allowsSeededScores({ LIGHTHOUSE_ALLOW_SEEDED_SCORES: "TRUE" })).toBe(false)
+  expect(allowsSeededScores({ LIGHTHOUSE_ALLOW_SEEDED_SCORES: "true" })).toBe(true)
+})
+
+test("runAudit throws when the worker URL is unset and seeded scores are not allowed", async () => {
+  vi.stubEnv("LIGHTHOUSE_WORKER_URL", "")
+  vi.stubEnv("LIGHTHOUSE_ALLOW_SEEDED_SCORES", "")
+
+  try {
+    const t = createConvexTest()
+    await expect(
+      t.action(internal.lighthouseWorker.runAudit, { domain: "example.com" }),
+    ).rejects.toThrowError("LIGHTHOUSE_WORKER_URL is not configured")
+  } finally {
+    vi.unstubAllEnvs()
+  }
+})
+
+test("runAudit returns seeded scores when the flag is true and the URL is unset", async () => {
+  vi.stubEnv("LIGHTHOUSE_WORKER_URL", "")
+  vi.stubEnv("LIGHTHOUSE_ALLOW_SEEDED_SCORES", "true")
+
+  try {
+    const t = createConvexTest()
+    const result = await t.action(internal.lighthouseWorker.runAudit, { domain: "example.com" })
+    expect(result).toEqual({ scores: seededScores("example.com") })
+  } finally {
+    vi.unstubAllEnvs()
+  }
+})
+
+test("parseWorkerResponse ignores the seeded-score flag", () => {
+  vi.stubEnv("LIGHTHOUSE_ALLOW_SEEDED_SCORES", "true")
+
+  try {
+    const parsed = parseWorkerResponse({
+      requestId: "req-1",
+      scores: {
+        performance: { score: 0.91 },
+        accessibility: { score: 0.82 },
+        bestPractices: { score: 0.73 },
+        seo: { score: 0.64 },
+      },
+    })
+    expect(parsed).toEqual({
+      scores: {
+        performance: { score: 0.91 },
+        accessibility: { score: 0.82 },
+        bestPractices: { score: 0.73 },
+        seo: { score: 0.64 },
+      },
+      workerRequestId: "req-1",
+    })
+    expect(parsed.scores).not.toEqual(seededScores("example.com"))
+
+    // Still rejects malformed bodies, flag or not.
+    expect(() => parseWorkerResponse({ scores: { performance: { score: 2 } } })).toThrowError(
+      /four category scores/,
+    )
+  } finally {
+    vi.unstubAllEnvs()
+  }
 })
