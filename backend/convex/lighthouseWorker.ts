@@ -10,6 +10,11 @@ import { parseWorkerResponse, seededScores } from "./lib/lighthouse"
 const region = "us-east-1"
 const service = "lambda"
 
+/** Adds `https://` when the stored domain has no scheme. The worker needs a full URL. */
+export function toWorkerUrl(domain: string): string {
+  return /^https?:\/\//i.test(domain) ? domain : `https://${domain}`
+}
+
 /**
  * Seeded scores are a development-only fallback and must be opted into
  * explicitly, so a deployment that forgets `LIGHTHOUSE_WORKER_URL` fails loudly
@@ -47,7 +52,7 @@ export const runAudit = internalAction({
       throw new Error("Lighthouse worker URL must be an HTTPS Function URL in us-east-1")
     }
 
-    const body = JSON.stringify({ url: domain })
+    const body = JSON.stringify({ url: toWorkerUrl(domain) })
     const signer = new SignatureV4({
       credentials: {
         accessKeyId,

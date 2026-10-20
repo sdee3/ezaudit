@@ -2,7 +2,7 @@ import { expect, test, vi } from "vitest"
 import { api, internal } from "./_generated/api"
 import type { Id } from "./_generated/dataModel"
 import { createConvexTest } from "../test/createConvexTest"
-import { allowsSeededScores } from "./lighthouseWorker"
+import { allowsSeededScores, toWorkerUrl } from "./lighthouseWorker"
 import { parseWorkerResponse, seededScores } from "./lib/lighthouse"
 
 /**
@@ -256,6 +256,13 @@ test("runAudit returns seeded scores when the flag is true and the URL is unset"
   } finally {
     vi.unstubAllEnvs()
   }
+})
+
+test("toWorkerUrl adds https:// only when the scheme is missing", () => {
+  expect(toWorkerUrl("novinky.cz")).toBe("https://novinky.cz")
+  expect(toWorkerUrl("sdee3.com/blog")).toBe("https://sdee3.com/blog")
+  expect(toWorkerUrl("https://news.ycombinator.com")).toBe("https://news.ycombinator.com")
+  expect(toWorkerUrl("HTTP://example.com")).toBe("HTTP://example.com")
 })
 
 test("parseWorkerResponse ignores the seeded-score flag", () => {
