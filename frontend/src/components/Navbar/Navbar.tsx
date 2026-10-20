@@ -45,6 +45,14 @@ export const Navbar = () => {
                 size="3rem"
                 title="User dashboard"
               />
+              <Box
+                as="button"
+                onClick={() => navigate(ROUTES.dashboard)}
+                color="gray.600"
+                fontWeight="semibold"
+              >
+                Dashboard
+              </Box>
             </Flex>
           </Flex>
         </Box>

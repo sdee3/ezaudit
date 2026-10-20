@@ -31,7 +31,12 @@ export const Dashboard = ({ user }: Props) => {
           <Text fontSize="3xl" fontWeight="bold" mb="4" mt="8">
             Your Data
           </Text>
-          <Text>{JSON.stringify(user)}</Text>
+          <Text>
+            <strong>Name:</strong> {user.name || 'Not provided'}
+          </Text>
+          <Text>
+            <strong>Email:</strong> {user.email}
+          </Text>
         </Box>
         <hr />
         <Box mb={8}>

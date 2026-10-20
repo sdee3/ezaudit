@@ -6,9 +6,15 @@ type AuditState = Pick<AuditResultParsed, 'status' | 'audit_result'>
 const STATUS_LABEL: Record<AuditResultParsed['status'], string> = {
   queued: 'Queued',
   running: 'Running',
-  done: '—',
+  done: 'Done',
   error: 'Failed',
 }
+
+export const auditStatusLabel = (status: AuditResultParsed['status']): string =>
+  STATUS_LABEL[status]
+
+export const auditDateLabel = (date: number): string =>
+  new Date(date).toLocaleDateString()
 
 /** Shows the score once the audit has results. Shows the status until then. */
 export const scoreLabel = (
@@ -16,7 +22,7 @@ export const scoreLabel = (
   category: keyof AuditResultCategories
 ): string | number =>
   audit.audit_result === null
-    ? STATUS_LABEL[audit.status]
+    ? audit.status === 'done' ? '—' : STATUS_LABEL[audit.status]
     : Math.ceil(audit.audit_result[category].score * 100)
 
 /** One sentence that explains the status on the audit page. Null when no note is needed. */

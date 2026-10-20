@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { AuditResultCategories } from '../models'
-import { scoreLabel, statusNote } from './auditStatus'
+import { auditDateLabel, auditStatusLabel, scoreLabel, statusNote } from './auditStatus'
 
 const RESULT: AuditResultCategories = {
   accessibility: { score: 0.915 },
@@ -20,6 +20,16 @@ describe('scoreLabel', () => {
     expect(scoreLabel({ status: 'queued', audit_result: null }, 'seo')).toBe('Queued')
     expect(scoreLabel({ status: 'running', audit_result: null }, 'seo')).toBe('Running')
     expect(scoreLabel({ status: 'error', audit_result: null }, 'seo')).toBe('Failed')
+  })
+})
+
+describe('audit list labels', () => {
+  it('formats the request date and status for the audit list', () => {
+    expect(auditDateLabel(new Date('2026-10-20T12:00:00Z').getTime())).toBe(
+      new Date('2026-10-20T12:00:00Z').toLocaleDateString()
+    )
+    expect(auditStatusLabel('queued')).toBe('Queued')
+    expect(auditStatusLabel('done')).toBe('Done')
   })
 })
 

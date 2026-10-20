@@ -17,7 +17,7 @@ import { useNavigate } from 'react-router-dom'
 import { api } from 'convex/_generated/api'
 
 import { BreadcrumbLink } from '../../../models'
-import { ROUTES, scoreLabel } from '../../../utils'
+import { auditDateLabel, auditStatusLabel, ROUTES, scoreLabel } from '../../../utils'
 import {
   Breadcrumbs,
   Loading,
@@ -71,6 +71,8 @@ const AuditsIndex = () => {
             <Thead>
               <Tr>
                 <Th>Domain</Th>
+                <Th>Date</Th>
+                <Th>Status</Th>
                 <Th>Accessibility</Th>
                 <Th>Best practices</Th>
                 <Th>Performance</Th>
@@ -101,6 +103,8 @@ const AuditsIndex = () => {
                       {audit.domain}
                     </a>
                   </Td>
+                  <Td>{auditDateLabel(audit.date_of_request)}</Td>
+                  <Td>{auditStatusLabel(audit.status)}</Td>
                   <Td>{scoreLabel(audit, 'accessibility')}</Td>
                   <Td>{scoreLabel(audit, 'bestPractices')}</Td>
                   <Td>{scoreLabel(audit, 'performance')}</Td>

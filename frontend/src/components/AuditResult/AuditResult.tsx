@@ -8,6 +8,7 @@ import {
   FormLabel,
   Heading,
   Link,
+  Progress,
   Switch,
   Text,
 } from '@chakra-ui/react'
@@ -127,22 +128,47 @@ export const AuditResult = ({ audit, handleOnSwitchChange }: Props) => {
         </ChakraAlert>
       )}
       <Box mt={4} mb={8}>
-        <Text>
-          <strong>Accessibility: </strong>
-          {scoreLabel(audit, 'accessibility')}
-        </Text>
-        <Text>
-          <strong>Best Practices: </strong>
-          {scoreLabel(audit, 'bestPractices')}
-        </Text>
-        <Text>
-          <strong>Performance: </strong>
-          {scoreLabel(audit, 'performance')}
-        </Text>
-        <Text>
-          <strong>SEO: </strong>
-          {scoreLabel(audit, 'seo')}
-        </Text>
+        <Heading as="h2" size="lg" mb={2}>
+          Category scores
+        </Heading>
+        <Text mb={4}>Each score uses the same 0 to 100 scale.</Text>
+        <Flex justifyContent="space-between" fontSize="sm" color="gray.600" mb={2}>
+          <Text>0 · Needs work</Text>
+          <Text>100 · Excellent</Text>
+        </Flex>
+        {([
+          ['accessibility', 'Accessibility', 'How well people with disabilities can use the site.'],
+          ['bestPractices', 'Best practices', 'Checks for secure, modern web development.'],
+          ['performance', 'Performance', 'Measures page load speed and responsiveness.'],
+          ['seo', 'SEO', 'Checks how well search engines can understand the site.'],
+        ] as const).map(([category, label, explanation]) => {
+          const score = scoreLabel(audit, category)
+          const value = typeof score === 'number' ? score : 0
+
+          return (
+            <Box key={category} py={3} borderTopWidth="1px" borderColor="gray.200">
+              <Flex justifyContent="space-between" alignItems="baseline" gap={4}>
+                <Text fontWeight="semibold">{label}</Text>
+                <Text fontWeight="bold">
+                  {score}
+                  {typeof score === 'number' ? ' / 100' : ''}
+                </Text>
+              </Flex>
+              <Text fontSize="sm" color="gray.600" mb={2}>
+                {explanation}
+              </Text>
+              {typeof score === 'number' && (
+                <Progress
+                  value={value}
+                  max={100}
+                  colorScheme="blue"
+                  size="sm"
+                  aria-label={`${label} score`}
+                />
+              )}
+            </Box>
+          )
+        })}
       </Box>
 
       {!isUserOwnerOfAudit && !user && (

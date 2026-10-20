@@ -6,9 +6,9 @@ import { api } from 'convex/_generated/api'
 
 import { useLoading } from '../../Loading'
 import { ApiResponse, HomeAuditInputValues } from '../../../models'
+import { submitAuditForm } from './submission'
 
-const SUBMITTED_MESSAGE =
-  "Audit submitted! We'll email the results when it's ready."
+export { reportHref } from './submission'
 
 const useInput = (
   setFormFieldValue: UseFormSetValue<HomeAuditInputValues>,
@@ -30,25 +30,15 @@ const useInput = (
 
   const onSubmit: SubmitHandler<HomeAuditInputValues> = useCallback(
     async ({ domain, email }) => {
-      try {
-        setIsLoading(true)
-        await submitAudit({ domain, email })
-
-        setApiResponseOutput({ status: 202, message: SUBMITTED_MESSAGE })
-      } catch (error) {
-        setApiResponseOutput({
-          status: 500,
-          message:
-            error instanceof Error
-              ? error.message
-              : 'Something went wrong. Please try again.',
-        })
-      } finally {
-        setIsLoading(false)
-        setFormFieldValue('domain', '')
-        setFormFieldValue('email', '')
-        trigger()
-      }
+      setApiResponseOutput(
+        await submitAuditForm(
+          submitAudit,
+          { domain, email },
+          setFormFieldValue,
+          setIsLoading,
+          trigger
+        )
+      )
     },
     [submitAudit, setFormFieldValue, setIsLoading, trigger]
   )
