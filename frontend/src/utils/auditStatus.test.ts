@@ -30,6 +30,17 @@ describe('statusNote', () => {
     expect(statusNote('error')).toContain('failed')
   })
 
+  it('shows a safe reason for a worker request rejection', () => {
+    expect(
+      statusNote(
+        'error',
+        'Lighthouse worker failed: HTTP 400 — {"error":"url must be a valid HTTP URL"}\n    at handler (internal path)',
+      )
+    ).toBe(
+      'The audit service rejected the request. Start a new audit from the home page.',
+    )
+  })
+
   it('returns null for a finished audit', () => {
     expect(statusNote('done')).toBeNull()
   })

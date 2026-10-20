@@ -123,7 +123,7 @@ export const AuditResult = ({ audit, handleOnSwitchChange }: Props) => {
           mt={4}
         >
           <AlertIcon />
-          <Text>{statusNote(audit.status)}</Text>
+          <Text>{statusNote(audit.status, audit.error)}</Text>
         </ChakraAlert>
       )}
       <Box mt={4} mb={8}>

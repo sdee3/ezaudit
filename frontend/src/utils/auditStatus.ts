@@ -20,13 +20,19 @@ export const scoreLabel = (
     : Math.ceil(audit.audit_result[category].score * 100)
 
 /** One sentence that explains the status on the audit page. Null when no note is needed. */
-export const statusNote = (status: AuditResultParsed['status']): string | null => {
+export const statusNote = (
+  status: AuditResultParsed['status'],
+  error?: string
+): string | null => {
   switch (status) {
     case 'queued':
       return 'The audit is queued. Scores appear here when it finishes.'
     case 'running':
       return 'The audit is running. Scores appear here when it finishes.'
     case 'error':
+      if (/Lighthouse worker failed: HTTP 400\b/i.test(error ?? '')) {
+        return 'The audit service rejected the request. Start a new audit from the home page.'
+      }
       return 'The audit failed. Start a new audit from the home page.'
     case 'done':
       return null
