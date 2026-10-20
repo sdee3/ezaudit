@@ -1,8 +1,8 @@
 # 04 — Backend (Convex)
 
-**Status:** `partial` (backend domain shipped and verified; a local arm64 Lambda worker proof passed on 2026-10-19, but no worker is deployed to AWS and the D6 import has never run; see Shipped divergences).
+**Status:** `partial` (backend domain shipped and verified; the Lambda worker is deployed to dev in `us-east-1`, and its configuration was re-checked read-only on 2026-10-20. The prod worker wiring and the D6 import remain open; see Shipped divergences).
 
-Dev deployment `dev:bold-orca-397` (project `stefan-djokic:ezaudit-91edc`) has the schema, functions, and tests. Auth is enforced on owner-only functions. The dev deployment is seeded with 4 sample audits. Real-time dashboard updates are wired at the code level (reactive `useQuery`); no browser-runtime session was recorded to confirm it live.
+Dev deployment `dev:bold-orca-397` (project `ezaudit`, id `3209319`) has the schema, functions, and tests. Auth is enforced on owner-only functions. The dev deployment is seeded with 4 sample audits. Real-time dashboard updates are wired at the code level (reactive `useQuery`); no browser-runtime session was recorded to confirm it live.
 
 ## Requirement
 
@@ -27,7 +27,7 @@ The frontend reaches this backend only through generated Convex artifacts and sh
 | Pusher real-time | Convex reactive queries (`useQuery` auto-updates) | ✅ |
 | Laravel Echo / `useEcho` | delete; use `useQuery` subscriptions | ✅ (no Echo consumer remains) |
 | Snappy server PDF | browser print ([ADR 0002](../adr/0002-pdf-browser-print.md)) | ✅ (`AuditResult.tsx` → `window.print()`) |
-| Lighthouse via queue job | AWS Lambda container + Function URL ([ADR 0001](../adr/0001-lighthouse-on-lambda.md)) | ◐ client shipped; local arm64 container proof passed; AWS worker is not deployed |
+| Lighthouse via queue job | AWS Lambda container + Function URL ([ADR 0001](../adr/0001-lighthouse-on-lambda.md)) | ◐ client shipped; worker deployed to dev in `us-east-1`; prod not wired |
 | Laravel mail | Resend from the Convex action ([ADR 0003](../adr/0003-email-resend.md)) | ✅ (no-op-logged when keys unset) |
 | MySQL/Redis/PHP in Docker | removed entirely | ✅ |
 
@@ -156,9 +156,9 @@ Shipped note: the remote path is implemented and env-keyed
 loopback request and filters proxy requests by public IP. Chromium sends normal
 navigation, redirect, and page resource requests through it. It supports public web
 domains on ports 80 and 443. It does not provide AWS network isolation or block every
-possible direct browser network path. No AWS worker
-or image publish workflow exists yet. Until a worker is attached, the runner uses
-the **dev-seed fallback**. The Convex Lighthouse action fails when
+possible direct browser network path. The dev deployment
+calls the attached worker. No image publish workflow exists in CI. Without a worker URL,
+the runner uses the **dev-seed fallback** only when the flag is set. The Convex Lighthouse action fails when
 `LIGHTHOUSE_WORKER_URL` is unset, unless `LIGHTHOUSE_ALLOW_SEEDED_SCORES` is
 `"true"`. With that override, it returns deterministic FNV-1a-hashed placeholder
 scores per domain so the submit → run → done flow completes without a worker. Tests
@@ -205,7 +205,8 @@ Code or runtime behaviour that differs from the requirement as written above
 2. **Lambda worker is deployed to dev, not prod** —
    `workers/lighthouse-worker/` contains the arm64 container, the handler, and
    `provision.sh`. The function `ezaudit-lighthouse-worker` runs in `us-east-1`, and
-   the dev deployment returns real Lighthouse scores. No Terraform stack or image
+   the dev deployment returns real Lighthouse scores. The 2026-10-20 read-only AWS check
+   confirmed `Active`, arm64, 2048 MB, 120 s, and `AWS_IAM`. No Terraform stack or image
    publish workflow exists yet. The prod deployment (`standing-malamute-74`) still
    needs `LIGHTHOUSE_WORKER_URL` and the caller credentials.
 3. **D6 migration not executed** — `audits.importLegacy` has never been written or
@@ -224,7 +225,7 @@ Code or runtime behaviour that differs from the requirement as written above
 
 ## Acceptance criteria
 
-- [x] `pnpm --filter ezaudit-backend test` passes with co-located `convex-test` cases for submit/list/get/setVisibility and pipeline transitions. *(re-run at HEAD f9fef5e: 10/10 passed)
+- [x] `pnpm --filter ezaudit-backend test` passes with co-located `convex-test` cases for submit/list/get/setVisibility and pipeline transitions. *(re-run at HEAD ddef9c6: 15/15 passed)
 - [x] `ctx.auth` is enforced on all owner-only functions; unauthenticated calls throw `Not authenticated`. *(proved in `audits.test.ts`: `listMine` unauthenticated, `setVisibility` unauthenticated + non-owner)
 - [x] A submitted audit appears in the dashboard **without a page reload** (real-time query). *(code-level: reactive `useQuery(api.audits.listMine)` over `ConvexReactClient`; pipeline mutations patch the subscribed doc. Not verified in a live browser session.)
 - [x] Public audits are readable signed-out; private audits are not. *(`audits.get` + tests cover signed-out/other-user/owner cases; existence not leaked.)*
@@ -232,7 +233,12 @@ Code or runtime behaviour that differs from the requirement as written above
 - [x] `convex/_generated` is committed and a fresh clone builds and tests without codegen. *(all 5 `_generated` files tracked in git; `tsc --noEmit` typecheck passes at HEAD with no codegen step.)*
 - [x] D1–D3 decisions are recorded as ADRs with the chosen path. *(docs/adr/0001–0003 all `accepted`; D6/0004 also recorded as accepted and unchanged.)*
 
-## Verification log (attested from the working tree at HEAD f9fef5e)
+## Verification log
+
+- 2026-10-20, HEAD `ddef9c6`: `pnpm --filter ezaudit-backend test` passed, 1 file, 15 tests.
+- 2026-10-20, read-only: `aws lambda get-function-configuration` and `get-function-url-config` returned `Active`, arm64, 2048 MB, 120 s, and `AWS_IAM`.
+
+Earlier entries are attested from the working tree at HEAD f9fef5e:
 
 - `pnpm --filter ezaudit-backend test` — 1 file, 10 tests, all passed (vitest 5, edge-runtime).
 - `pnpm --filter ezaudit-backend typecheck` — `tsc --noEmit -p tsconfig.typecheck.json`, clean.

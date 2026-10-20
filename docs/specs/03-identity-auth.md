@@ -242,10 +242,8 @@ by path only at the edges listed here. ✅ Test asserts both paths (`getFunction
   The `CREDITS_SERVICE_SECRET_EZAUDIT` server-to-server debit path has no consumer in
   ezaudit yet — the backend half of "display first" is recorded in the env table but
   not exercised by any shipped code.
-- **Spec-README drift (fix me here, not in this spec).** `docs/specs/README.md` still
-  lists D4 as *"open — spike the React-18-compatible Clerk line"* and index status for
-  03 as `planned`; the spike concluded (`@clerk/react@6.17.8`, recorded above) and the
-  implementation shipped.
+- **README drift resolved.** `docs/specs/README.md` lists 03 as `done` and D4 as
+  `accepted` with `@clerk/react@6.17.8`. The spike result above matches the README.
 
 ## Notes/verification log (2026-10)
 

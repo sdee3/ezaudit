@@ -1,6 +1,6 @@
 # 07 — Testing and CI
 
-**Status:** `partial` — backend Vitest + convex-test is done and verified locally (10 passing tests). Frontend has Vitest unit tests for `lib`/`utils` plus a route/theme smoke test, but none of the component tests the spec lists. The CI workflow file matches the spec step-for-step; no recorded CI runs exist, so greenness could not be verified (CI status was not run as part of this pass).
+**Status:** `partial` — backend Vitest + convex-test is done and verified (15 passing tests at HEAD `ddef9c6`). Frontend has Vitest unit tests for `lib`/`utils`, a session-guard component test, and a route/theme smoke test, but not the component tests the spec lists. The CI workflow matches the spec, plus a worker check step. GitHub Actions runs of `checks` succeed on `master` (verified 2026-10-20).
 
 ## Requirement
 
@@ -20,26 +20,27 @@ component and unit tests, with Convex and Clerk mocked.
 | `cypress/integration/auth/userDashboard.ts` | dashboard button → `/dashboard` → sign-in form → view audits → empty state | signed-out dashboard and empty audits list, Clerk hooks mocked | **No matching test.** Route paths themselves are pinned by `smoke.test.ts`. |
 
 `data-cy` selectors are not part of the new suite. Tests query by role, label, and text.
-(Currently moot — see divergences: no component tests exist yet, so there is no DOM
-querying at all; unit tests assert on plain functions.)
+(Currently moot: the suite has one component test, and it does not query the DOM by
+selector.)
 
-## As-shipped test inventory (HEAD `f9fef5e`, verified 2026-10-15)
+## As-shipped test inventory (HEAD `ddef9c6`, verified 2026-10-20)
 
-Frontend — 5 files, 17 tests, all passing (`pnpm test` run locally):
+Frontend — 6 files, 19 tests, all passing (`pnpm test`):
 
 | Test file | Covers |
 |---|---|
 | `frontend/src/smoke.test.ts` | Route table still matches `702d652` (`ROUTES.*`, `/dashboard/audits/:id` shape) and the Chakra color tokens (`#1976d2` family). |
 | `frontend/src/lib/identity.test.ts` | SDEE3 Identity hub URL builders (sign-in / sign-up / account), sign-in ticket reading from both param names, ticket stripping preserving other params, remembered-redirect-path consume-once semantics. Env stubbed with `vi.stubEnv`. |
 | `frontend/src/lib/identityCreditsApi.test.ts` | Cross-repo contract: the vendored `users:upsertFromClient` / `credits/queries:getBalance` function paths match the identity deployment. |
+| `frontend/src/components/ConvexSessionGuard/ConvexSessionGuard.test.tsx` | Session guard renders the home page without waiting on the Clerk session (`968f855`). |
 | `frontend/src/utils/authErrors.test.ts` | `isAuthQueryError` detects "Not authenticated" Convex errors and rejects non-error values. |
 | `frontend/src/utils/publicRoutes.test.ts` | App-shell vs public-shell route classification, including `/dashboard/*` behind the session handshake and unknown-path catch-all. |
 
-Backend — 1 file, 10 tests, all passing:
+Backend — 1 file, 15 tests, all passing:
 
 | Test file | Covers |
 |---|---|
-| `backend/convex/audits.test.ts` | `submit` creates a queued ownerless audit without auth; domain/email validation failure paths; scheduled pipeline run reaching `done` with one `auditJobs` row; `listMine` ordering (newest first) and ownership; `listMine` auth failure; `get` public/private gating (signed-out, other-user, owner); `setVisibility` auth + ownership + toggle; pipeline error path with `LIGHTHOUSE_WORKER_URL` stubbed via `vi.stubEnv` and `fetch` mocked to fail (3 attempts, all `error`); `internal.auditPipeline.retry` completing an errored audit. |
+| `backend/convex/audits.test.ts` | `submit` creates a queued ownerless audit without auth; domain/email validation failure paths; scheduled pipeline run reaching `done` with one `auditJobs` row; `listMine` ordering (newest first) and ownership; `listMine` auth failure; `get` public/private gating (signed-out, other-user, owner); `setVisibility` auth + ownership + toggle; pipeline error path with `LIGHTHOUSE_WORKER_URL` stubbed via `vi.stubEnv` and `fetch` mocked to fail (3 attempts, all `error`); `internal.auditPipeline.retry` completing an errored audit; `toWorkerUrl` adds `https://` only when the scheme is missing. |
 
 ## Frontend (Vitest)
 
@@ -70,6 +71,11 @@ excludes the `*.test.ts` files themselves (`!<glob>` entry, required by convex-t
 than the wiring file. `t.withIdentity({ subject: "user_1" })` (and `user_2`) is used as
 specified. Lighthouse worker mocking is done by stubbing `fetch` when the scheduler runs.
 
+## Worker (`workers/lighthouse-worker`)
+
+`node --test address-filter.test.mjs` runs 13 cases for the public-address filter. CI runs
+them in the worker check step. The worker has no Vitest suite.
+
 ## CI (`.github/workflows/checks.yml`)
 
 Single workflow on push and pull requests:
@@ -81,11 +87,11 @@ Single workflow on push and pull requests:
 5. `pnpm lint`
 6. `pnpm typecheck`
 7. `pnpm test` (frontend Vitest + backend Vitest)
+8. Worker checks: `npm ci` in `workers/lighthouse-worker`, `node --check` on four worker files, and `npm test` there
 
-The shipped workflow implements exactly these steps (`actions/setup-node` additionally
-pins `node-version: 20`). There is no identity-repo clone step. `gh run list` for the
-repo returned no runs, so the workflow matching the file is the only verified fact —
-CI status was not run.
+The workflow sets `actions/setup-node` to `node-version: 20`. There is no identity-repo
+clone step. `gh run list` shows five successful `checks` runs on `master` through
+2026-10-20.
 
 > Note from the astro-mate recon: its CI additionally clones the private `sdee3/identity`
 > repo to build the `file:` `@sdee3/credits` dependency, driven by the `IDENTITY_DEPLOY_KEY`
@@ -98,29 +104,29 @@ CI status was not run.
 
 | Command | Purpose | Verified |
 |---|---|---|
-| `pnpm test` | frontend + backend Vitest | yes — 17 + 10 tests pass locally (2026-10-15) |
+| `pnpm test` | frontend + backend Vitest | yes — 19 + 15 tests pass (2026-10-20) |
 | `pnpm test:convex` | backend Vitest only | present at root `package.json`; not run separately |
-| `pnpm lint` / `pnpm typecheck` | repo-wide | present (`pnpm -r --if-present`); not run in this pass |
+| `pnpm lint` / `pnpm typecheck` | repo-wide | exit 0 (2026-10-20) |
 
 ## Shipped divergences
 
 1. **Frontend Vitest config** (`frontend/vitest.config.ts`): ships `environment: 'node'`,
    not `jsdom`; ships no `@` alias and no `convex/*` path map; adds
-   `passWithNoTests: true`. Consistent with the absence of component tests, but it does
+   `passWithNoTests: true`. Consistent with the absence of most component tests, but it does
    not match this spec's config bullets. (Backend config ships exactly as specified,
    `edge-runtime` + `convex/**/*.test.ts`, plus `passWithNoTests: true`.)
-2. **Frontend coverage**: none of the component tests exist — no `AuditForm`, `AuditResult`
-   owner/public rendering, `NoResults` variants, or `Breadcrumbs`/`Footer` print tests; no
-   `convex/react` or Clerk mocks; no `MemoryRouter` renders. The suite instead grew unit
-   tests for routing/session handshake utilities (`publicRoutes`), auth error handling
-   (`authErrors`), the identity-hub URL builders (`identity`), the credits API contract
-   (`identityCreditsApi`), and a route/theme smoke test — all added after this spec was
-   written (auth-drift and credits work), all within `src/**/*.{test,spec}.{ts,tsx}`.
+2. **Frontend coverage**: one component test exists (`ConvexSessionGuard`). The rest are
+   missing: no `AuditForm`, `AuditResult` owner/public rendering, `NoResults` variants, or
+   `Breadcrumbs`/`Footer` print tests; no `convex/react` or Clerk mocks; no `MemoryRouter`
+   renders. The suite instead grew unit tests for routing/session handshake utilities
+   (`publicRoutes`), auth error handling (`authErrors`), the identity-hub URL builders
+   (`identity`), the credits API contract (`identityCreditsApi`), and a route/theme smoke
+   test — all added after this spec was written (auth-drift and credits work), all within
+   `src/**/*.{test,spec}.{ts,tsx}`.
 3. **Co-location**: unit tests co-locate next to the `lib/` and `utils/` modules they
    test, and `smoke.test.ts` lives at `src/` root; no separate integration-test directory
-   exists (true trivially, since no component tests exist). The `backend/test/` directory
-   holds only the convex-test wiring, and `audits.test.ts` is co-located under `convex/`
-   as specified.
+   exists. The `backend/test/` directory holds only the convex-test wiring, and
+   `audits.test.ts` is co-located under `convex/` as specified.
 4. **`createConvexTest.ts`**: ships `import.meta.glob(["../convex/**/*.ts", "!../convex/**/*.test.ts"])`
    (tests excluded so convex-test can locate the `_generated` modules). Comment in the
    file says nothing under `convex/` may be excluded except the tests themselves.
@@ -134,15 +140,15 @@ CI status was not run.
 
 - [ ] The three former Cypress flows are covered by the Vitest cases in the table above.
 - [ ] `pnpm test` passes on a fresh clone with no `.env.local`. (`pnpm test` passes
-      locally — 17 frontend + 10 backend tests — with `frontend/.env.local` present;
+      locally — 19 frontend + 15 backend tests — with `frontend/.env.local` present;
       the fresh-clone / no-`.env.local` scenario was not reproduced. Nothing in the test
       files reads `.env.local` at module load: `identity.test.ts` stubs its own env vars.)
 - [x] Backend tests run under `edge-runtime` and cover auth failure paths.
       (`backend/vitest.config.ts` proves the environment; `audits.test.ts` proves
       unauthenticated + non-owner rejection paths.)
-- [ ] CI is green on push and pull requests; no private-repo clone step is required.
-      (The workflow file is correct and self-contained, but `gh run list` shows no
-      recorded runs — CI status was not run, so greenness is unverified.)
+- [x] CI is green on push and pull requests; no private-repo clone step is required.
+      (`checks` succeeded on the last five pushes to `master`, through 2026-10-20.
+      The workflow has no clone step.)
 - [x] Cypress, `cypress.json`, and any Playwright dependency or parity script are absent.
       (Repo-wide grep excluding `node_modules`/.scratch: no Cypress code, config, or deps
       anywhere; commits `73e7548` onward started Vite/Vitest from scratch. See divergence 5

@@ -30,8 +30,9 @@ Evidence and sources: [d1-lighthouse-host](../research/d1-lighthouse-host.md).
 - Confirm the account's other regional Lambda functions are not already consuming the
   400,000 GB-second allotment. Lambda@Edge does not draw it.
 - Do not enable provisioned concurrency, and do not log the full Lighthouse JSON.
-- Package Chromium in the container image (`@sparticuz/chromium` arm64). A zip is the
-  wrong package for that binary.
+- Package Chromium in the container image. The image uses `@sparticuz/chromium-min` 153.0.0
+  and downloads the arm64 Chromium 153.0.0 pack in the Dockerfile. A zip is the wrong
+  package for that binary.
 - Restrict the IAM principal to this Function URL. Rotate its credentials.
 - Reserve concurrency at four audits.
 - The user selected no VPC or network-level egress controls. The proxy is an

@@ -52,7 +52,7 @@ Routes themselves are pinned by `frontend/src/smoke.test.ts` ✅.
 | `components/Breadcrumbs/Breadcrumbs.tsx` | same ✅ | blue bar, hidden while printing (`display: none`) |
 | `components/Footer/index.tsx` | same ✅ | year, T&C link hidden while printing |
 | `components/Layout/index.tsx` | same ✅ | Navbar + main + Footer |
-| `components/Loading/Loading.tsx` + `hooks` | same ✅ | centered spinner; both byte-identical |
+| `components/Loading/Loading.tsx` + `hooks` | same ✅ | centered spinner; `hooks` byte-identical; spinner enlarged in `16a847c` (divergence 8) |
 | `components/Navbar/Navbar.tsx` | same ✅ | logo, wordmark, dashboard button; adds `<CreditsBadge />` (`f9fef5e`) |
 | `components/NoResults/NoResults.tsx` | same ✅ | empty-state vs 404 variants via `asError404` prop (was `noResultAs200`/`noResultsAs404` variants keyed off `data-cy`) |
 | `modules/Dashboard/components/Dashboard.tsx` | same ✅ | Your Data / Audits / Account Settings; sign-out calls `clearUser()` directly |
@@ -83,9 +83,10 @@ fonts: { body: 'Open Sans, -apple-system, BlinkMacSystemFont, Segoe UI, Ubuntu, 
          heading: 'Open Sans, -apple-system, BlinkMacSystemFont, Segoe UI, Ubuntu, Cantarell, sans-serif' }
 ```
 
-Plus `theme-color` `#2663D1` ✅ (`index.html`), Open Sans weights `300;400;700` ✅,
-and `normalize.css@8.0.1` with the same CDN URL and SRI hash ✅ — both loaded from CDN
-in `frontend/index.html` as in `_document.tsx`. GA is `VITE_GOOGLE_ANALYTICS`
+Plus `theme-color` `#2663D1` ✅ (`index.html`). Open Sans `300;400;700` loads from the
+`@fontsource/open-sans` package in `frontend/src/main.tsx`. `normalize.css@8.0.1` loads from
+the local file `frontend/src/styles/normalize.min.css`. Neither loads from a CDN now
+(divergence 8). GA is `VITE_GOOGLE_ANALYTICS`
 substituted at build time by a tiny Vite plugin, standing in for the Next.js env var.
 
 ## Assets
@@ -124,6 +125,7 @@ label, and text ([07-testing-and-ci](./07-testing-and-ci.md)).
   (`frontend/src/components/AuditResult/AuditResult.tsx`).
 - ✅ `frontend/src/print.css` hides the cookie banner and every `print-hidden` element under
   `@media print`. Cmd+P and "Export to PDF" print the same report (ADR 0002).
+- ✅ The options block shows only when `audit.userId` equals `user.id` (`b1e79a4`). This is the same rule the backend uses. Email matching is gone.
 - ✅ The target keeps the browser print path only (`ADR 0002`); no server-side PDF
   generation exists in `frontend/`.
 
@@ -182,7 +184,8 @@ requirement:
 7. **`next/image` / `next/head` / `next/link` translated.** Hero and empty-state
    images use plain `<img>` with `maxWidth` styling; `<Head title meta>` is a small
    effect-based shim in `src/head.tsx` (document title/meta tags only — favicon,
-   fonts, and manifest live in `index.html`; there is no per-route SSR metadata).
+   fonts load from `main.tsx`, and manifest lives in `index.html`; no per-route SSR metadata).
+8. **Visual changes after the port.** The `Loading` spinner is enlarged (`size="xl"`, `thickness="4px"`, `speed="0.65s"`, commit `16a847c`). Open Sans and normalize.css moved from CDN to the app origin (`ad702da`). The session loader applies the Chakra theme (`ab9184b`). These are deliberate changes, not parity regressions.
 
 ## Non-goals
 

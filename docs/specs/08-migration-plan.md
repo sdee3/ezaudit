@@ -1,7 +1,7 @@
 # 08 — Migration Plan
 
 **Status:** `partial` — Phases 0–6 done (5 fully, 6 with two open boxes), Phase 7 partial
-(CI unverifiable, three Cypress-flow test cases missing), Phase 8 partial (prod is live;
+(CI green on GitHub, three Cypress-flow test cases missing), Phase 8 partial (prod is live;
 smoke run, legacy data import, and repo-root cleanup open).
 
 ## Requirement
@@ -43,7 +43,7 @@ it is `../astro-mate`, `../identity`, and `../infrastructure`.
 - [x] `.env.example` files in `frontend/`, `backend/`, `scripts/`; all local/prod env
       files gitignored.
 - [x] Gate: `pnpm install` → `pnpm build` → `pnpm test` (then non-empty) all succeed.
-      Verified at `f9fef5e`: build, test (17 frontend + 10 backend), lint, typecheck all
+      Verified at `ddef9c6`: build, test (19 frontend + 15 backend), lint, typecheck all
       pass locally.
 
 > Note: the planned "remove the Laravel `backend/` contents once the Convex backend is
@@ -115,7 +115,7 @@ it is `../astro-mate`, `../identity`, and `../infrastructure`.
       `"true"` — see Shipped divergences. Prod still needs its environment values.
 - Gate: dashboard is fully driven by Convex queries ([x], `2c884dd`); submissions flow
   queued → done in real time ([~] pipeline + retry proven by tests, real-time rendering
-  not yet attested); tests pass ([x] 10 backend cases).
+  not yet attested); tests pass ([x] 15 backend cases).
 
 ## Phase 5 — Infra + deploy (done — `f34d0aa`, `9a2d53f`, `0bdd9b2`)
 
@@ -136,7 +136,7 @@ it is `../astro-mate`, `../identity`, and `../infrastructure`.
 
 ## Phase 6 — Convex dev/prod (done — `899fa27`, `1cc7a84`, `f9fef5e`)
 
-- [x] Dev `dev:bold-orca-397` (project `stefan-djokic:ezaudit-91edc`) and prod
+- [x] Dev `dev:bold-orca-397` (project `ezaudit`, id `3209319`) and prod
       `prod:standing-malamute-74` both deployed and in sync with the repo (dev push
       `899fa27`; prod deploy recorded with the credits work, `f9fef5e`).
 - [x] Scrubbing wrapper trio in `backend/scripts/` (`load-backend-env.sh`,
@@ -154,19 +154,18 @@ it is `../astro-mate`, `../identity`, and `../infrastructure`.
 ## Phase 7 — Tests + CI (partial — `899fa27`, `bdd1ace`)
 
 - [x] Vitest only, no Cypress and no Playwright anywhere in the tree (grep: 0).
-- [x] Frontend suite: 5 files / 17 tests (`smoke`, `identity`, `identityCreditsApi`,
-      `authErrors`, `publicRoutes`), jsdom. Backend suite: `convex/audits.test.ts`,
-      10 cases under `edge-runtime` incl. auth-failure paths.
+- [x] Frontend suite: 6 files / 19 tests (`smoke`, `identity`, `identityCreditsApi`,
+      `authErrors`, `publicRoutes`, `ConvexSessionGuard`), `node` environment. Backend suite:
+      `convex/audits.test.ts`, 15 cases under `edge-runtime` incl. auth-failure paths.
 - [x] `.github/workflows/checks.yml`: `pnpm install --frozen-lockfile` → `pnpm lint` →
-      `pnpm typecheck` → `pnpm test` on push and PRs (`bdd1ace`); no private-repo clone
-      step (credits are vendored; `f9fef5e`).
-- [x] `pnpm test` green locally at `f9fef5e` (27 tests pass).
+      `pnpm typecheck` → `pnpm test` → worker checks on push and PRs (`bdd1ace`, `338be43`);
+      no private-repo clone step (credits are vendored; `f9fef5e`).
+- [x] `pnpm test` green at `ddef9c6` (34 tests pass).
 - [ ] The three former Cypress flows' coverage cases (AuditForm validation/submit
       states, audits-table routing, dashboard empty state) **do not exist yet** — the
       current suites cover identity/auth plumbing but no component flow tests.
-- [ ] CI green cannot be verified: `gh run list` returns no runs for the repo
-      (workflow may never have executed on GitHub).
-- Gate: `pnpm test` green ([x] locally); CI green ([ ] unverifiable).
+- [x] CI green: five `checks` runs on `master` succeeded through 2026-10-20 (`gh run list`).
+- Gate: `pnpm test` green ([x]); CI green ([x], GitHub runs 2026-10-20).
 
 ## Phase 8 — Cutover (partial — `0bdd9b2`, `f9fef5e`)
 
@@ -202,7 +201,7 @@ production.)
    Older text here claimed the file held “the legacy `audits` rows” — that was wrong.
 2. **The pre-Laravel Next.js-era tree is still tracked at the repo root** — `pages/`,
    `components/`, `models/`, `modules/`, `utils/`, `public/`, `next.config.js`,
-   `next-env.d.ts`, root `tsconfig.json` (~100 of 207 tracked paths). It is inert (no
+   `next-env.d.ts`, root `tsconfig.json` (57 of 221 tracked paths). It is inert (no
    workspace script references it) but it means "frontend/ and backend/ are the only app
    packages" holds only for the workspace, not the whole tree. This is the main
    outstanding Phase 8 deletion item.
@@ -223,9 +222,8 @@ production.)
    `backend/convex.json` sets `aiFiles.enabled: false`, so no
    `convex/_generated/ai/guidelines.md` exists and that acceptance box is treated as
    N/A rather than failing.
-7. **CI has no recorded runs.** `.github/workflows/checks.yml` exists since `bdd1ace`,
-   but `gh run list` for this repo returns nothing — Actions may be disabled on the
-   repository. "CI is green" remains unverified.
+7. **CI runs are recorded.** `.github/workflows/checks.yml` runs on every push. The first
+   run came from `64b5bfc`. Five later runs on `master` succeeded through 2026-10-20.
 
 ## Risks
 

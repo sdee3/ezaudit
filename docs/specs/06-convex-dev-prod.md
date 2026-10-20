@@ -22,7 +22,7 @@ dashboard.
 | Env | `CONVEX_DEPLOYMENT` | Convex URL (frontend) | Key source |
 |---|---|---|---|
 | dev | `dev:bold-orca-397` (project `ezaudit`) | `https://bold-orca-397.convex.cloud` | `backend/.env.local` |
-| prod | `prod:standing-malamute-74` | `https://standing-malamute-74.convex.cloud` | `backend/.env.production` (not yet created) |
+| prod | `prod:standing-malamute-74` | `https://standing-malamute-74.convex.cloud` | `backend/.env.production` (present, gitignored) |
 
 > Both deployments verified against `../infrastructure/convex/terraform.tfstate`
 > (`convex_deployment.ezaudit_dev` → `bold-orca-397`, `convex_deployment.ezaudit_prod`
@@ -132,9 +132,9 @@ Terraform state.
 ## Acceptance criteria
 
 - [ ] `pnpm convex:dev` watches, codegens, and pushes to the dev deployment only. *(Wiring exists: `convex:dev` → `backend` `dev` → `convex dev`; live watch/push not exercised from repo evidence.)*
-- [ ] `pnpm convex:deploy` deploys to dev; `pnpm convex:deploy:prod` deploys to prod. *(Scripts exist and are wired: `backend` `deploy` / `deploy:prod` → `convex-with-env.sh` [+ `--prod`]; only the dev branch has ever been runnable here — `backend/.env.production` is absent.)*
+- [x] `pnpm convex:deploy` deploys to dev; `pnpm convex:deploy:prod` deploys to prod. *(Scripts route through `convex-with-env.sh` [+ `--prod`]. Both deploys ran on 2026-10-20 per the status line. `backend/.env.production` is present.)*
 - [x] Neither command is affected by a stray exported `CONVEX_DEPLOY_KEY`. *(Proven by `exec env -i` in `convex-with-env.sh`; `CONVEX_DEPLOY_KEY` is set only inside the scrubbed env from the env file.)*
-- [ ] `pnpm convex:env:sync` / `:prod` set the correct deployment's env from the matching env file. *(Script exists and routes through the same wrapper via `--prod`, selecting `.env.local` / `.env.production` respectively; not yet run against a deployment from repo evidence.)*
+- [x] `pnpm convex:env:sync` / `:prod` set the correct deployment's env from the matching env file. *(Spec 03 records a hash-compared run against both deployments. This audit did not re-run the script.)*
 - [ ] `npx convex ai-files install` output (`convex/_generated/ai/guidelines.md`) is committed. *(Not satisfied: `backend/convex.json` sets `aiFiles.enabled: false`; no `ai/` dir under `convex/_generated/`, nothing in git history — see Shipped divergences.)*
 - [ ] Deploying prod requires passing `pnpm test` first (documented in the runbook). *(Not satisfied: no runbook doc in the repo; `.github/workflows/checks.yml` runs `pnpm test` in CI, but nothing gates the prod deploy on it.)*
 

@@ -66,7 +66,7 @@ ezaudit/
 | D1 | Lighthouse on AWS Lambda (container image, Function URL, no VPC) | [04](./04-backend-convex.md), [ADR 0001](../adr/0001-lighthouse-on-lambda.md) | accepted |
 | D2 | PDF via the existing browser print path | [04](./04-backend-convex.md), [ADR 0002](../adr/0002-pdf-browser-print.md) | accepted |
 | D3 | Audit-ready email via Resend from Convex | [04](./04-backend-convex.md), [ADR 0003](../adr/0003-email-resend.md) | accepted |
-| D4 | Clerk SDK package/version under React 18 | [03](./03-identity-auth.md) | open — spike the React-18-compatible Clerk line. Shipped: `@clerk/react` 6.17.8 (spec 03 names v5); decide whether to accept or amend |
+| D4 | Clerk SDK package/version under React 18 | [03](./03-identity-auth.md) | accepted — `@clerk/react` 6.17.8 installs under the React 18.3.1 pin. Spec 03 names v5 as the earlier recommendation. |
 | D5 | `@sdee3/credits` adoption | [03](./03-identity-auth.md) | updated 2026-10: still no npm dependency on it; instead a vendored React-18 subset implements auth **and credit display** |
 | D6 | Migrate legacy `audits` rows | [08](./08-migration-plan.md), [ADR 0004](../adr/0004-migrate-legacy-audits.md) | accepted |
 

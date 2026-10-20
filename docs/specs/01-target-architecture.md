@@ -1,6 +1,6 @@
 # 01 — Target Architecture
 
-**Status:** `partial` (verified locally at f9fef5e; open: the legacy Next.js tree at the repo root) — workspace + isolation live and verified; deploy scripts shipped (f34d0aa, 9a2d53f, 1cc7a84); the frontend was deployed to production (0bdd9b2), and the Terraform stack it deploys against lives in the sibling `infrastructure` repo at `aws/ezaudit` (see Shipped divergences). One caveat remains, recorded there: the legacy Next.js package tree still sits at the repo root.
+**Status:** `partial` (verified at HEAD `ddef9c6` on 2026-10-20; open: the legacy Next.js tree at the repo root) — workspace + isolation live and verified; deploy scripts shipped (f34d0aa, 9a2d53f, 1cc7a84); the frontend was deployed to production (0bdd9b2), and the Terraform stack it deploys against lives in the sibling `infrastructure` repo at `aws/ezaudit` (see Shipped divergences). One caveat remains, recorded there: the legacy Next.js package tree still sits at the repo root.
 
 ## Goal
 
@@ -42,7 +42,7 @@ the archived UI.
 | Routing | `react-router-dom` v7 | ✅ `^7.9.4` |
 | Forms | `react-hook-form` | ✅ `^7.63.0` |
 | Cookies/consent | `react-cookie`, `react-cookie-consent` | ✅ `^8.1.2` / `^10.0.2` |
-| Backend | Convex | ✅ `convex ^1.46.0` in both packages |
+| Backend | Convex | ✅ `convex ^1.47.0` in both packages |
 | Auth | SDEE3 Identity (Clerk-issued JWT validated by Convex) | ✅ `@clerk/react ^6.17.8`; `backend/convex/auth.config.ts` |
 | Hosting | S3 (private) + CloudFront (OAC), ACM cert, viewer-request function | ✅ live; Terraform in sibling `../infrastructure/aws/ezaudit`; `scripts/deploy-frontend.sh` does env-write → build → S3 sync/upload → CloudFront invalidation |
 
@@ -81,7 +81,7 @@ Rules, enforced mechanically:
 | `pnpm dev:frontend` | Vite only | ✅ `pnpm --filter ezaudit-frontend dev` |
 | `pnpm convex:dev` | `convex dev` from `backend/` | ✅ `pnpm --filter ezaudit-backend dev` |
 | `pnpm build` | production frontend build | ✅ runs locally clean (`✓ built in 184ms`, 15-entry PWA precache) |
-| `pnpm test` | frontend + backend tests | ✅ 17 frontend + 10 backend tests passing |
+| `pnpm test` | frontend + backend tests | ✅ 19 frontend + 15 backend tests passing (2026-10-20) |
 | `pnpm lint` / `pnpm typecheck` | repo-wide checks | ✅ both exit clean (backends' `lint`/`typecheck` are TS checks; frontend lints with `eslint src`) |
 | `pnpm convex:deploy` | deploy to Convex **DEV** | ✅ `pnpm --filter ezaudit-backend deploy` → `convex-with-env.sh deploy` with `CONVEX_DEPLOYMENT=dev:bold-orca-397` default |
 | `pnpm convex:deploy:prod` | deploy to Convex **PROD** | ✅ `deploy:prod` → same wrapper in `--prod` mode, needing `CONVEX_DEPLOYMENT=prod:<ref>` in `backend/.env.production` |
@@ -113,7 +113,7 @@ Full var tables live in specs 03–06.
   (bdd1ace): frozen-lockfile install + lint + typecheck + test on every push/PR.)
 - [ ] `frontend/` and `backend/` are the only app packages; no Laravel/PHP files remain.
   (Second half holds — no PHP/Laravel files are tracked. First half does not hold
-  literally: the legacy Next.js app still sits at the repo root — ~56 tracked files
+  literally: the legacy Next.js app still sits at the repo root — 57 of 221 tracked files
   (`pages/`, `components/`, `models/`, `modules/`, `utils/`, `public/`, root
   `tsconfig.json`, `next.config.js`, root `.env.example`. See Shipped divergences 1.)
 - [x] The tsconfig path map makes any frontend import outside the allowed Convex boundary a compile error.
@@ -136,7 +136,7 @@ Full var tables live in specs 03–06.
 1. **Legacy Next.js package still at the repo root.** The predecessor tree is the
    original Next.js app sitting directly in the repo root — `pages/`, `components/`,
    `models/`, `modules/`, `utils/`, `public/`, root `tsconfig.json`, `next.config.js`,
-   root `.env.example` and ESLint config — ~56 of 207 tracked files. It is not wired
+   root `.env.example` and ESLint config — 57 of 221 tracked files. It is not wired
    into the workspace scripts and is not part of the target app, but it still means
    `frontend/` and `backend/` are not literally "the only app packages" at the repo
    root, which keeps that acceptance criterion unchecked. Requirement text left as-is;
