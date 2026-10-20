@@ -21,3 +21,12 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+
+      - name: Worker checks
+        run: |
+          npm ci --prefix workers/lighthouse-worker
+          node --check workers/lighthouse-worker/index.mjs
+          node --check workers/lighthouse-worker/egress-proxy.mjs
+          node --check workers/lighthouse-worker/proof.mjs
+          node --check workers/lighthouse-worker/address-filter.test.mjs
+          npm test --prefix workers/lighthouse-worker
