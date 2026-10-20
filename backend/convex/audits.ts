@@ -77,13 +77,18 @@ export const listMine = query({
 
 /**
  * One audit by id. Readable when public; otherwise only by its owner.
- * Returns null when not found OR forbidden — existence is not leaked.
+ * Returns null when the id is malformed, not found, or forbidden. Existence is
+ * not leaked. Takes a string so the client never guesses the Convex id format.
  * Auth is optional.
  */
 export const get = query({
-  args: { id: v.id("audits") },
+  args: { id: v.string() },
   handler: async (ctx, args) => {
-    const audit = await ctx.db.get(args.id)
+    const id = ctx.db.normalizeId("audits", args.id)
+    if (id === null) {
+      return null
+    }
+    const audit = await ctx.db.get(id)
     if (audit === null) {
       return null
     }

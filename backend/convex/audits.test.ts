@@ -145,6 +145,13 @@ test("get serves public audits to anyone and private audits only to the owner", 
   })
 })
 
+test("get returns null for a malformed id instead of throwing", async () => {
+  const t = createConvexTest()
+
+  expect(await t.query(api.audits.get, { id: "not-a-convex-id" })).toBeNull()
+  expect(await t.query(api.audits.get, { id: "" })).toBeNull()
+})
+
 test("setVisibility requires auth and ownership", async () => {
   const t = createConvexTest()
 
