@@ -35,6 +35,7 @@ interface Props {
   retryEligible: boolean
   handleRetry: () => void
   handleDelete: () => void
+  isGuestAccess?: boolean
 }
 
 export const AuditResult = ({
@@ -43,6 +44,7 @@ export const AuditResult = ({
   retryEligible,
   handleRetry,
   handleDelete,
+  isGuestAccess = false,
 }: Props) => {
   const { isPrinting, setIsPrinting } = useContext(PrintContext)
   const { user } = useContext(AuthContext)
@@ -75,12 +77,13 @@ export const AuditResult = ({
           {isUserOwnerOfAudit ? 'Your Audit Result' : 'Audit Result'}
         </Heading>
       </Flex>
-      {!isUserOwnerOfAudit && (
+      {!isUserOwnerOfAudit && !isGuestAccess && (
         <Alert
           mb={4}
           alertMessage="You are viewing a publicly available Audit."
         />
       )}
+      {isGuestAccess && <Alert mb={4} alertMessage="You are viewing a private report with a secure guest link." />}
       <hr />
       <Text my={4}>
         <strong>Website audited: </strong>

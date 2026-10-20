@@ -51,7 +51,7 @@ export const AuditForm = () => {
 
   const { message, state } = alertMessage
   const reportLink = apiResponseOutput?.auditId
-    ? reportHref(apiResponseOutput.auditId, !!user)
+    ? reportHref(apiResponseOutput.auditId, !!user, apiResponseOutput.guestToken)
     : null
 
   return (
@@ -102,8 +102,11 @@ export const AuditForm = () => {
           </Link>
         </Text>
       )}
-      {apiResponseOutput?.auditId && !user && (
-        <Text mt={4}>This report is private and cannot open from a guest submission.</Text>
+      {reportLink && !user && (
+        <Text mt={4}>
+          <Link color="blue.600" href={reportLink}>View your secure private audit report</Link>
+          <Text> This link expires after 30 days.</Text>
+        </Text>
       )}
 
       {message?.length > 0 && state && (

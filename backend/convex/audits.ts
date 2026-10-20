@@ -3,6 +3,26 @@ import { mutation, query } from "./_generated/server"
 import { internal } from "./_generated/api"
 import { requireUserId, getOptionalUserId } from "./lib/auth"
 
+const GUEST_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000
+
+async function createGuestToken(): Promise<string> {
+  const bytes = crypto.getRandomValues(new Uint8Array(32))
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "")
+}
+
+async function hashGuestToken(token: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token))
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")
+}
+
+function withoutGuestSecret<T extends { guestTokenHash?: string; guestTokenExpiresAt?: number }>(audit: T) {
+  const { guestTokenHash: _hash, guestTokenExpiresAt: _expiry, ...report } = audit
+  return report
+}
+
 /**
  * The public API surface (spec 04 Functions table). The UI reaches these
  * through generated Convex artifacts only.
@@ -43,6 +63,8 @@ export const submit = mutation({
 
     const userId = await getOptionalUserId(ctx)
     const now = Date.now()
+    const guestToken = userId === null ? await createGuestToken() : undefined
+    const guestTokenHash = guestToken === undefined ? undefined : await hashGuestToken(guestToken)
 
     const auditId = await ctx.db.insert("audits", {
       userId,
@@ -54,11 +76,13 @@ export const submit = mutation({
       date_of_request: now,
       createdAt: now,
       updatedAt: now,
+      guestTokenHash,
+      guestTokenExpiresAt: guestToken === undefined ? undefined : now + GUEST_TOKEN_TTL_MS,
     })
 
     await ctx.scheduler.runAfter(0, internal.auditPipeline.run, { auditId })
 
-    return auditId
+    return guestToken === undefined ? { auditId } : { auditId, guestToken }
   },
 })
 
@@ -67,11 +91,12 @@ export const listMine = query({
   args: {},
   handler: async (ctx) => {
     const userId = await requireUserId(ctx)
-    return ctx.db
+    const audits = await ctx.db
       .query("audits")
       .withIndex("by_userId_and_date", (q) => q.eq("userId", userId))
       .order("desc")
       .collect()
+    return audits.map(withoutGuestSecret)
   },
 })
 
@@ -93,13 +118,27 @@ export const get = query({
       return null
     }
     if (audit.is_public) {
-      return audit
+      return withoutGuestSecret(audit)
     }
     const userId = await getOptionalUserId(ctx)
     if (userId !== null && audit.userId === userId) {
-      return audit
+      return withoutGuestSecret(audit)
     }
     return null
+  },
+})
+
+/** Read a private guest report with its bearer token. */
+export const getGuest = query({
+  args: { id: v.string(), token: v.string() },
+  handler: async (ctx, args) => {
+    const id = ctx.db.normalizeId("audits", args.id)
+    if (id === null) return null
+    const audit = await ctx.db.get(id)
+    if (audit === null || audit.is_public || !audit.guestTokenHash || !audit.guestTokenExpiresAt) return null
+    if (audit.guestTokenExpiresAt <= Date.now()) return null
+    if (await hashGuestToken(args.token) !== audit.guestTokenHash) return null
+    return withoutGuestSecret(audit)
   },
 })
 
@@ -119,7 +158,8 @@ export const setVisibility = mutation({
       updatedAt: Date.now(),
     })
 
-    return await ctx.db.get(args.id)
+    const updated = await ctx.db.get(args.id)
+    return updated === null ? null : withoutGuestSecret(updated)
   },
 })
 

@@ -14,11 +14,24 @@ describe('submitAuditForm', () => {
   it('shows a report path only for a signed-in owner', () => {
     expect(reportHref('audit-123', true)).toBe('/dashboard/audits/audit-123')
     expect(reportHref('audit-123', false)).toBeNull()
+    expect(reportHref('audit-123', false, 'secret token')).toBe(
+      '/dashboard/audits/audit-123?guestToken=secret%20token'
+    )
+  })
+
+  it('returns the guest token for the secure report link', async () => {
+    const setValue = createSetValue()
+    const mutation = vi.fn().mockResolvedValue({ auditId: 'audit-123', guestToken: 'guest-secret' })
+    const result = await submitAuditForm(mutation, values, setValue, vi.fn(), vi.fn())
+
+    expect(reportHref(result.auditId, false, result.guestToken)).toBe(
+      '/dashboard/audits/audit-123?guestToken=guest-secret'
+    )
   })
 
   it('clears fields and returns the report id after a successful mutation', async () => {
     const setValue = createSetValue()
-    const mutation = vi.fn().mockResolvedValue('audit-123')
+    const mutation = vi.fn().mockResolvedValue({ auditId: 'audit-123' })
 
     const result = await submitAuditForm(
       mutation,

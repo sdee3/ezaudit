@@ -36,16 +36,22 @@ const AuditByIdOverview = () => {
   const { id: auditId = '' } = useParams()
   const [searchParams] = useSearchParams()
   const emailToken = searchParams.get('e')
+  const guestToken = searchParams.get('guestToken')
   const { fetchEmailDataFromUrl, parsedEmail, clearParsedEmail } = useApi()
 
   const toggleVisibility = useMutation(api.audits.setVisibility)
   const removeAudit = useMutation(api.audits.remove)
   const retryAudit = useMutation(api.audits.retry)
   // The server rejects malformed ids by returning null, so the id goes through as-is.
-  const audit = useQuery(
+  const ownerOrPublicAudit = useQuery(
     api.audits.get,
-    auditId && !parsedEmail ? { id: auditId } : 'skip'
+    auditId && !parsedEmail && !guestToken ? { id: auditId } : 'skip'
   )
+  const guestAudit = useQuery(
+    api.audits.getGuest,
+    auditId && guestToken && !parsedEmail ? { id: auditId, token: guestToken } : 'skip'
+  )
+  const audit = guestToken ? guestAudit : ownerOrPublicAudit
   const retryEligible = useQuery(
     api.audits.retryEligibility,
     audit && user ? { id: audit._id } : 'skip'
@@ -116,7 +122,7 @@ const AuditByIdOverview = () => {
   }, [navigate, user, emailToken, auditId])
 
   if (auditId && audit === undefined && !parsedEmail) return <Loading />
-  if (!user && !parsedEmail && !audit?.is_public) return <RequireSignIn />
+  if (!user && !guestToken && !parsedEmail && !audit?.is_public) return <RequireSignIn />
   if (!audit && !parsedEmail) return <NoResults asError404 />
 
   return (
@@ -128,6 +134,7 @@ const AuditByIdOverview = () => {
         {!parsedEmail && audit && (
           <AuditResult
             audit={audit}
+            isGuestAccess={!!guestToken && !user}
             handleOnSwitchChange={handleOnSwitchChange}
             retryEligible={retryEligible === true}
             handleRetry={() => retryAudit({ id: audit._id })}

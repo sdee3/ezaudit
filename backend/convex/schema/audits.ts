@@ -43,6 +43,8 @@ export const auditsTables = {
     ),
     audit_result: v.union(auditResultValidator, v.null()),
     findings: v.optional(v.array(auditFindingValidator)),
+    guestTokenHash: v.optional(v.string()),
+    guestTokenExpiresAt: v.optional(v.number()),
     /** Replaces the legacy 0/1 integer. */
     is_public: v.boolean(),
     /** ms epoch; the UI formats with new Date(...).toString(). */

@@ -100,7 +100,12 @@ export const retry = internalAction({
 
 export const getAudit = internalQuery({
   args: { auditId: v.id("audits") },
-  handler: async (ctx, args) => ctx.db.get(args.auditId),
+  handler: async (ctx, args) => {
+    const audit = await ctx.db.get(args.auditId)
+    if (audit === null) return null
+    const { guestTokenHash: _hash, guestTokenExpiresAt: _expiry, ...report } = audit
+    return report
+  },
 })
 
 export const countAttempts = internalQuery({

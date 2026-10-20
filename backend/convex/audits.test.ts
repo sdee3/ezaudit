@@ -30,6 +30,8 @@ async function insertAudit(
     is_public: boolean
     date_of_request: number
     audit_result: null
+    guestTokenHash: string
+    guestTokenExpiresAt: number
   }> = {},
 ): Promise<Id<"audits">> {
   const id = await t.run(async (ctx) => {
@@ -52,9 +54,9 @@ async function insertAudit(
 test("submit requires no auth and creates a queued, ownerless audit", async () => {
   const t = createConvexTest()
 
-  const id = await t.mutation(api.audits.submit, VALID)
+  const { auditId: id, guestToken } = await t.mutation(api.audits.submit, VALID)
 
-  const audit = await t.run(async (ctx) => await ctx.db.get(id as Id<"audits">))
+  const audit = await t.run(async (ctx) => await ctx.db.get(id))
   expect(audit).toMatchObject({
     userId: null,
     email: "owner@example.com",
@@ -63,6 +65,22 @@ test("submit requires no auth and creates a queued, ownerless audit", async () =
     audit_result: null,
     is_public: false,
   })
+  expect(guestToken).toMatch(/^[A-Za-z0-9_-]{43}$/)
+  expect(audit?.guestTokenHash).toMatch(/^[a-f0-9]{64}$/)
+  expect(audit?.guestTokenHash).not.toBe(guestToken)
+  expect(audit?.guestTokenExpiresAt).toBe(audit!.createdAt + 30 * 24 * 60 * 60 * 1000)
+  expect(guestToken).toBeDefined()
+  const guestReport = await t.query(api.audits.getGuest, { id, token: guestToken! })
+  expect(guestReport).toMatchObject({ _id: id })
+  expect(guestReport).not.toHaveProperty("guestTokenHash")
+  expect(await t.query(api.audits.getGuest, { id, token: "wrong-token" })).toBeNull()
+})
+
+test("getGuest rejects expired tokens", async () => {
+  const t = createConvexTest()
+  const { auditId, guestToken } = await t.mutation(api.audits.submit, VALID)
+  await t.run(async (ctx) => ctx.db.patch(auditId, { guestTokenExpiresAt: Date.now() - 1 }))
+  expect(await t.query(api.audits.getGuest, { id: auditId, token: guestToken! })).toBeNull()
 })
 
 test("submit validates the domain", async () => {
@@ -75,6 +93,16 @@ test("submit validates the domain", async () => {
   await expect(
     t.mutation(api.audits.submit, { ...VALID, domain: "example" }),
   ).rejects.toThrowError(/domain/i)
+})
+
+test("signed-in submission keeps owner access and does not issue a guest token", async () => {
+  const t = createConvexTest()
+  const result = await t.withIdentity({ subject: "user_1" }).mutation(api.audits.submit, VALID)
+
+  expect(result).toMatchObject({ auditId: expect.any(String) })
+  expect(result).not.toHaveProperty("guestToken")
+  expect(await t.withIdentity({ subject: "user_1" }).query(api.audits.get, { id: result.auditId }))
+    .toMatchObject({ userId: "user_1", is_public: false })
 })
 
 test("submit validates the email", async () => {
@@ -109,7 +137,7 @@ test("submit schedules the pipeline run", async () => {
 test("listMine is ordered newest first and scoped to the owner", async () => {
   const t = createConvexTest()
 
-  await insertAudit(t, { userId: "user_1", date_of_request: 100 })
+  await insertAudit(t, { userId: "user_1", date_of_request: 100, guestTokenHash: "private-hash", guestTokenExpiresAt: 1000 })
   await insertAudit(t, { userId: "user_1", date_of_request: 300 })
   await insertAudit(t, { userId: "user_2", date_of_request: 999 })
 
@@ -118,6 +146,7 @@ test("listMine is ordered newest first and scoped to the owner", async () => {
 
   const mine = await asUser1.query(api.audits.listMine, {})
   expect(mine.map((a) => a.date_of_request)).toEqual([300, 100])
+  expect(mine[1]).not.toHaveProperty("guestTokenHash")
 
   const theirs = await asUser2.query(api.audits.listMine, {})
   expect(theirs.map((a) => a.date_of_request)).toEqual([999])
@@ -163,7 +192,12 @@ test("get returns null for a malformed id instead of throwing", async () => {
 test("setVisibility requires auth and ownership", async () => {
   const t = createConvexTest()
 
-  const id = await insertAudit(t, { userId: "user_1", is_public: false })
+  const id = await insertAudit(t, {
+    userId: "user_1",
+    is_public: false,
+    guestTokenHash: "private-hash",
+    guestTokenExpiresAt: 1000,
+  })
 
   // unauthenticated
   await expect(t.mutation(api.audits.setVisibility, { id: id as Id<"audits"> })).rejects.toThrowError(
@@ -180,6 +214,7 @@ test("setVisibility requires auth and ownership", async () => {
   const asUser1 = t.withIdentity({ subject: "user_1" })
   const updated = await asUser1.mutation(api.audits.setVisibility, { id: id as Id<"audits"> })
   expect(updated).toMatchObject({ is_public: true })
+  expect(updated).not.toHaveProperty("guestTokenHash")
 })
 
 test("remove requires the owner and deletes the report and its attempt history", async () => {
@@ -283,7 +318,7 @@ test("pipeline marks audits error and retries up to 3 attempts when the worker f
 
   try {
     const t = createConvexTest()
-    const id = await t.mutation(api.audits.submit, VALID)
+    const { auditId: id } = await t.mutation(api.audits.submit, VALID)
 
     await t.finishAllScheduledFunctions(vi.runAllTimers)
 
@@ -322,7 +357,7 @@ test("pipeline persists worker findings and preserves all category scores", asyn
 
   try {
     const t = createConvexTest()
-    const id = await t.mutation(api.audits.submit, VALID)
+    const { auditId: id } = await t.mutation(api.audits.submit, VALID)
     await t.finishAllScheduledFunctions(vi.runAllTimers)
 
     const audit = await t.run(async (ctx) => await ctx.db.get(id as Id<"audits">))

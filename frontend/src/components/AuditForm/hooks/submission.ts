@@ -5,13 +5,16 @@ import { ApiResponse, HomeAuditInputValues } from '../../../models'
 const SUBMITTED_MESSAGE =
   "Audit submitted! We'll email the results when it's ready."
 
-export const reportHref = (auditId: unknown, isSignedIn: boolean) =>
-  isSignedIn && typeof auditId === 'string'
-    ? `/dashboard/audits/${auditId}`
+export const reportHref = (auditId: unknown, isSignedIn: boolean, guestToken?: unknown) => {
+  if (typeof auditId !== 'string') return null
+  if (isSignedIn) return `/dashboard/audits/${auditId}`
+  return typeof guestToken === 'string'
+    ? `/dashboard/audits/${auditId}?guestToken=${encodeURIComponent(guestToken)}`
     : null
+}
 
 export const submitAuditForm = async (
-  submitAudit: (values: HomeAuditInputValues) => Promise<unknown>,
+  submitAudit: (values: HomeAuditInputValues) => Promise<{ auditId: string; guestToken?: string }>,
   values: HomeAuditInputValues,
   setFormFieldValue: UseFormSetValue<HomeAuditInputValues>,
   setIsLoading: (value: boolean) => void,
@@ -19,10 +22,10 @@ export const submitAuditForm = async (
 ): Promise<ApiResponse> => {
   setIsLoading(true)
   try {
-    const auditId = String(await submitAudit(values))
+    const { auditId, guestToken } = await submitAudit(values)
     setFormFieldValue('domain', '')
     setFormFieldValue('email', '')
-    return { status: 202, message: SUBMITTED_MESSAGE, auditId }
+    return { status: 202, message: SUBMITTED_MESSAGE, auditId, guestToken }
   } catch (error) {
     return {
       status: 500,
