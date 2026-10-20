@@ -13,6 +13,20 @@ export const auditResultValidator = v.object({
   seo: v.object({ score: v.number() }),
 })
 
+export const auditFindingValidator = v.object({
+  id: v.string(),
+  category: v.union(
+    v.literal("accessibility"),
+    v.literal("bestPractices"),
+    v.literal("performance"),
+    v.literal("seo"),
+  ),
+  title: v.string(),
+  description: v.string(),
+  score: v.number(),
+  suggestedFixes: v.array(v.string()),
+})
+
 export const auditsTables = {
   audits: defineTable({
     /** identity.subject of the owner, or null for signed-out submissions. */
@@ -28,6 +42,7 @@ export const auditsTables = {
       v.literal("error"),
     ),
     audit_result: v.union(auditResultValidator, v.null()),
+    findings: v.optional(v.array(auditFindingValidator)),
     /** Replaces the legacy 0/1 integer. */
     is_public: v.boolean(),
     /** ms epoch; the UI formats with new Date(...).toString(). */

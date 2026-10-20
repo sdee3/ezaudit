@@ -31,7 +31,7 @@ export const runAudit = internalAction({
   handler: async (_ctx, { domain }) => {
     const workerUrl = process.env.LIGHTHOUSE_WORKER_URL
     if (!workerUrl) {
-      if (allowsSeededScores()) return { scores: seededScores(domain) }
+      if (allowsSeededScores()) return { scores: seededScores(domain), findings: [] }
       throw new Error("LIGHTHOUSE_WORKER_URL is not configured")
     }
 

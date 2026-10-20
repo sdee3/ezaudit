@@ -146,6 +146,25 @@ export async function handler(event) {
       })
       return json(502, { error: "Lighthouse returned incomplete scores" })
     }
+    const findings = []
+    for (const category of ["performance", "accessibility", "best-practices", "seo"]) {
+      const categoryName = category === "best-practices" ? "bestPractices" : category
+      for (const { id } of categories[category].auditRefs) {
+        const audit = result.lhr.audits[id]
+        if (
+          typeof audit?.score !== "number" || audit.score >= 1 ||
+          typeof audit.title !== "string" || typeof audit.description !== "string"
+        ) continue
+        findings.push({
+          id,
+          category: categoryName,
+          title: audit.title,
+          description: audit.description,
+          score: audit.score,
+          suggestedFixes: audit.description ? [audit.description] : [],
+        })
+      }
+    }
     return json(200, {
       requestId: event.requestContext?.requestId,
       scores: {
@@ -154,6 +173,7 @@ export async function handler(event) {
         bestPractices: { score: categories["best-practices"].score },
         seo: { score: categories.seo.score },
       },
+      findings,
     })
   } catch (error) {
     console.error("Lighthouse run failed", error)

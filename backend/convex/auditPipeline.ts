@@ -8,6 +8,7 @@ import { internal } from "./_generated/api"
 import type { Id } from "./_generated/dataModel"
 import type { ActionCtx, MutationCtx } from "./_generated/server"
 import { sendAuditReadyEmail } from "./lib/email"
+import { auditFindingValidator } from "./schema/audits"
 
 /**
  * Audit pipeline (spec 04): enqueue → run → persist → notify.
@@ -37,7 +38,7 @@ async function performAttempt(
   const attempt = await ctx.runMutation(internal.auditPipeline.markRunning, { auditId })
 
   try {
-    const { scores, workerRequestId } = await ctx.runAction(
+    const { scores, findings, workerRequestId } = await ctx.runAction(
       internal.lighthouseWorker.runAudit,
       { domain: audit.domain },
     )
@@ -45,6 +46,7 @@ async function performAttempt(
       auditId,
       attempt,
       audit_result: scores,
+      findings,
       workerRequestId,
     })
     // Never throws; a Resend failure must not fail the audit.
@@ -147,6 +149,7 @@ audit_result: v.object({
       performance: v.object({ score: v.number() }),
       seo: v.object({ score: v.number() }),
     }),
+    findings: v.array(auditFindingValidator),
     workerRequestId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -154,6 +157,7 @@ audit_result: v.object({
     await ctx.db.patch(args.auditId, {
       status: "done",
       audit_result: args.audit_result,
+      findings: args.findings,
       error: undefined,
       updatedAt: now,
     })

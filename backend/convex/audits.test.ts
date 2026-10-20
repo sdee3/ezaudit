@@ -11,6 +11,14 @@ import { parseWorkerResponse, seededScores } from "./lib/lighthouse"
  */
 
 const VALID = { domain: "https://example.com", email: "owner@example.com" }
+const FINDING = {
+  id: "image-alt",
+  category: "accessibility" as const,
+  title: "Image elements do not have [alt] attributes",
+  description: "Add alternative text to image elements.",
+  score: 0,
+  suggestedFixes: ["Add alternative text to image elements."],
+}
 
 async function insertAudit(
   t: ReturnType<typeof createConvexTest>,
@@ -207,6 +215,45 @@ test("pipeline marks audits error and retries up to 3 attempts when the worker f
   }
 })
 
+test("pipeline persists worker findings and preserves all category scores", async () => {
+  vi.useFakeTimers()
+  vi.stubEnv("LIGHTHOUSE_WORKER_URL", "https://worker.lambda-url.us-east-1.on.aws/run")
+  vi.stubEnv("LIGHTHOUSE_AWS_ACCESS_KEY_ID", "test-access-key")
+  vi.stubEnv("LIGHTHOUSE_AWS_SECRET_ACCESS_KEY", "test-secret-key")
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+    requestId: "worker-req-1",
+    scores: {
+      performance: { score: 0.91 },
+      accessibility: { score: 0.82 },
+      bestPractices: { score: 0.73 },
+      seo: { score: 0.64 },
+    },
+    findings: [FINDING],
+  }), { status: 200, headers: { "content-type": "application/json" } })))
+
+  try {
+    const t = createConvexTest()
+    const id = await t.mutation(api.audits.submit, VALID)
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+
+    const audit = await t.run(async (ctx) => await ctx.db.get(id as Id<"audits">))
+    expect(audit).toMatchObject({
+      status: "done",
+      audit_result: {
+        performance: { score: 0.91 },
+        accessibility: { score: 0.82 },
+        bestPractices: { score: 0.73 },
+        seo: { score: 0.64 },
+      },
+      findings: [FINDING],
+    })
+  } finally {
+    vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
+    vi.useRealTimers()
+  }
+})
+
 test("internal.auditPipeline.retry is exposed for bounded retries", async () => {
   // Retries reach `done` through the seeded fallback (spec 04).
   vi.stubEnv("LIGHTHOUSE_ALLOW_SEEDED_SCORES", "true")
@@ -259,7 +306,7 @@ test("runAudit returns seeded scores when the flag is true and the URL is unset"
   try {
     const t = createConvexTest()
     const result = await t.action(internal.lighthouseWorker.runAudit, { domain: "example.com" })
-    expect(result).toEqual({ scores: seededScores("example.com") })
+    expect(result).toEqual({ scores: seededScores("example.com"), findings: [] })
   } finally {
     vi.unstubAllEnvs()
   }
@@ -284,6 +331,7 @@ test("parseWorkerResponse ignores the seeded-score flag", () => {
         bestPractices: { score: 0.73 },
         seo: { score: 0.64 },
       },
+      findings: [FINDING],
     })
     expect(parsed).toEqual({
       scores: {
@@ -292,6 +340,7 @@ test("parseWorkerResponse ignores the seeded-score flag", () => {
         bestPractices: { score: 0.73 },
         seo: { score: 0.64 },
       },
+      findings: [FINDING],
       workerRequestId: "req-1",
     })
     expect(parsed.scores).not.toEqual(seededScores("example.com"))
@@ -300,6 +349,23 @@ test("parseWorkerResponse ignores the seeded-score flag", () => {
     expect(() => parseWorkerResponse({ scores: { performance: { score: 2 } } })).toThrowError(
       /four category scores/,
     )
+    const validScores = {
+      performance: { score: 0.91 },
+      accessibility: { score: 0.82 },
+      bestPractices: { score: 0.73 },
+      seo: { score: 0.64 },
+    }
+    expect(() => parseWorkerResponse({ scores: validScores })).toThrowError(/malformed findings/)
+    expect(() => parseWorkerResponse({ scores: validScores, findings: [{ ...FINDING, title: 2 }] }))
+      .toThrowError(/malformed findings/)
+    expect(() => parseWorkerResponse({
+      scores: validScores,
+      findings: [{ ...FINDING, suggestedFixes: [null] }],
+    })).toThrowError(/malformed findings/)
+    expect(() => parseWorkerResponse({
+      scores: validScores,
+      findings: [{ ...FINDING, suggestedFixes: undefined }],
+    })).toThrowError(/malformed findings/)
   } finally {
     vi.unstubAllEnvs()
   }

@@ -5,8 +5,18 @@ export type CategoryScores = {
   seo: { score: number }
 }
 
+export type Finding = {
+  id: string
+  category: "accessibility" | "bestPractices" | "performance" | "seo"
+  title: string
+  description: string
+  score: number
+  suggestedFixes: string[]
+}
+
 export type RunAuditResult = {
   scores: CategoryScores
+  findings: Finding[]
   workerRequestId?: string
 }
 
@@ -38,7 +48,31 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isScore(value: unknown): value is { score: number } {
-  return isRecord(value) && typeof value.score === "number" && value.score >= 0 && value.score <= 1
+  return (
+    isRecord(value) &&
+    typeof value.score === "number" &&
+    Number.isFinite(value.score) &&
+    value.score >= 0 &&
+    value.score <= 1
+  )
+}
+
+function isFinding(value: unknown): value is Finding {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.category === "string" &&
+    ["accessibility", "bestPractices", "performance", "seo"].includes(value.category) &&
+    typeof value.title === "string" &&
+    value.title.length > 0 &&
+    typeof value.description === "string" &&
+    typeof value.score === "number" &&
+    Number.isFinite(value.score) &&
+    value.score >= 0 &&
+    value.score <= 1 &&
+    Array.isArray(value.suggestedFixes) &&
+    value.suggestedFixes.every((fix) => typeof fix === "string")
+  )
 }
 
 export function parseWorkerResponse(body: unknown): RunAuditResult {
@@ -55,6 +89,9 @@ export function parseWorkerResponse(body: unknown): RunAuditResult {
   ) {
     throw new Error("Lighthouse worker response is missing the four category scores")
   }
+  if (!Array.isArray(body.findings) || !body.findings.every(isFinding)) {
+    throw new Error("Lighthouse worker response has malformed findings")
+  }
   return {
     scores: {
       performance: { score: rawScores.performance.score },
@@ -62,6 +99,7 @@ export function parseWorkerResponse(body: unknown): RunAuditResult {
       bestPractices: { score: rawScores.bestPractices.score },
       seo: { score: rawScores.seo.score },
     },
+    findings: body.findings,
     workerRequestId: typeof body.requestId === "string" ? body.requestId : undefined,
   }
 }
