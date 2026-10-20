@@ -1,3 +1,9 @@
+// Self-hosted so the CSP style-src stays 'self'. Third-party stylesheets are blocked.
+import '@fontsource/open-sans/300.css'
+import '@fontsource/open-sans/400.css'
+import '@fontsource/open-sans/700.css'
+import './styles/normalize.min.css'
+
 import { ClerkProvider, useAuth } from '@clerk/react'
 import { ConvexReactClient } from 'convex/react'
 import { ConvexProviderWithClerk } from 'convex/react-clerk'
