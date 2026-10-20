@@ -4,7 +4,6 @@ import { ChangeEvent, useContext, useEffect, useMemo } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { api } from 'convex/_generated/api'
-import type { Id } from 'convex/_generated/dataModel'
 
 import {
   AuditResult,
@@ -31,9 +30,6 @@ const BREADCRUMB_LINKS: BreadcrumbLink[] = [
   },
 ]
 
-/** Convex ids are 26 lowercase base32 chars; anything else cannot exist server-side. */
-const isPlausibleId = (value: string) => /^[a-z0-9]{26}$/.test(value)
-
 const AuditByIdOverview = () => {
   const { user } = useContext(AuthContext)
   const navigate = useNavigate()
@@ -42,11 +38,11 @@ const AuditByIdOverview = () => {
   const emailToken = searchParams.get('e')
   const { fetchEmailDataFromUrl, parsedEmail, clearParsedEmail } = useApi()
 
-  const id = isPlausibleId(auditId) ? (auditId as Id<'audits'>) : null
   const toggleVisibility = useMutation(api.audits.setVisibility)
+  // The server rejects malformed ids by returning null, so the id goes through as-is.
   const audit = useQuery(
     api.audits.get,
-    id && !parsedEmail ? { id } : 'skip'
+    auditId && !parsedEmail ? { id: auditId } : 'skip'
   )
 
   const metaTitle = `EZ Audit | SEO Audit result of ${audit?.domain ?? ''}`
@@ -107,7 +103,7 @@ const AuditByIdOverview = () => {
     if (user && emailToken) navigate(ROUTES.audit(auditId), { replace: true })
   }, [navigate, user, emailToken, auditId])
 
-  if (id && audit === undefined && !parsedEmail) return <Loading />
+  if (auditId && audit === undefined && !parsedEmail) return <Loading />
   if (!user && !parsedEmail && !audit?.is_public) return <RequireSignIn />
   if (!audit && !parsedEmail) return <NoResults asError404 />
 

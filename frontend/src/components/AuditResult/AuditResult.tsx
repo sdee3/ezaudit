@@ -14,19 +14,12 @@ import {
 import { ChangeEvent, useContext, useMemo } from 'react'
 import { FiFileText } from 'react-icons/fi'
 
-import { AuditResultCategories, AuditResultParsed } from '../../models'
+import { AuditResultParsed } from '../../models'
 import { PrintContext } from '../../modules/Print'
-import { ROUTES } from '../../utils'
+import { ROUTES, scoreLabel, statusNote } from '../../utils'
 import { Alert } from '../Alert'
 import { AuthContext } from '../Auth'
 import { ShareAuditURLModal } from './ShareAuditURLModal'
-
-/** Renders '—' while the audit is queued/running (audit_result is null). */
-const scoreText = (
-  audit_result: AuditResultCategories | null,
-  category: keyof AuditResultCategories
-) =>
-  audit_result === null ? '—' : Math.ceil(audit_result[category].score * 100)
 
 interface Props {
   audit: AuditResultParsed
@@ -123,22 +116,32 @@ export const AuditResult = ({ audit, handleOnSwitchChange }: Props) => {
         </Flex>
       </Box>
       <hr />
+      {audit.status !== 'done' && (
+        <ChakraAlert
+          status={audit.status === 'error' ? 'error' : 'info'}
+          variant="left-accent"
+          mt={4}
+        >
+          <AlertIcon />
+          <Text>{statusNote(audit.status)}</Text>
+        </ChakraAlert>
+      )}
       <Box mt={4} mb={8}>
         <Text>
           <strong>Accessibility: </strong>
-          {scoreText(audit.audit_result, 'accessibility')}
+          {scoreLabel(audit, 'accessibility')}
         </Text>
         <Text>
           <strong>Best Practices: </strong>
-          {scoreText(audit.audit_result, 'bestPractices')}
+          {scoreLabel(audit, 'bestPractices')}
         </Text>
         <Text>
           <strong>Performance: </strong>
-          {scoreText(audit.audit_result, 'performance')}
+          {scoreLabel(audit, 'performance')}
         </Text>
         <Text>
           <strong>SEO: </strong>
-          {scoreText(audit.audit_result, 'seo')}
+          {scoreLabel(audit, 'seo')}
         </Text>
       </Box>
 

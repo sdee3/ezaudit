@@ -16,11 +16,8 @@ import { useNavigate } from 'react-router-dom'
 
 import { api } from 'convex/_generated/api'
 
-import {
-  AuditResultCategories,
-  BreadcrumbLink,
-} from '../../../models'
-import { ROUTES } from '../../../utils'
+import { BreadcrumbLink } from '../../../models'
+import { ROUTES, scoreLabel } from '../../../utils'
 import {
   Breadcrumbs,
   Loading,
@@ -36,12 +33,6 @@ const BREADCRUMB_LINKS: BreadcrumbLink[] = [
     name: 'Dashboard',
   },
 ]
-
-/** Renders '—' while the audit is queued/running (audit_result is null). */
-const scoreCell = (
-  audit_result: AuditResultCategories | null,
-  category: keyof AuditResultCategories
-) => (audit_result === null ? '—' : Math.ceil(audit_result[category].score * 100))
 
 const AuditsIndex = () => {
   const navigate = useNavigate()
@@ -110,10 +101,10 @@ const AuditsIndex = () => {
                       {audit.domain}
                     </a>
                   </Td>
-                  <Td>{scoreCell(audit.audit_result, 'accessibility')}</Td>
-                  <Td>{scoreCell(audit.audit_result, 'bestPractices')}</Td>
-                  <Td>{scoreCell(audit.audit_result, 'performance')}</Td>
-                  <Td>{scoreCell(audit.audit_result, 'seo')}</Td>
+                  <Td>{scoreLabel(audit, 'accessibility')}</Td>
+                  <Td>{scoreLabel(audit, 'bestPractices')}</Td>
+                  <Td>{scoreLabel(audit, 'performance')}</Td>
+                  <Td>{scoreLabel(audit, 'seo')}</Td>
                 </Tr>
               ))}
             </Tbody>
