@@ -4,9 +4,10 @@
 
 Dev is `dev:bold-orca-397`. Prod is provisioned as `prod:standing-malamute-74`
 (both present in `../infrastructure/convex` state). The scrubbing wrappers are in
-`backend/scripts/` (added in `1cc7a84`) and are wired into `package.json`, but they
-have not been exercised against a live deploy from this repo, and
-`backend/.env.production` (the prod key source) does not exist yet on this machine.
+`backend/scripts/` (added in `1cc7a84`) and are wired into `package.json`. Both ran
+against `standing-malamute-74` on 2026-10-20. `backend/.env.production` (the prod key
+source) exists locally and is gitignored. Recreate it with
+`npx convex deployment token create <name> --prod --save-env .env.production`.
 
 ## Requirement
 
@@ -92,7 +93,9 @@ Three pieces, copied in shape from astro-mate (all committed in `1cc7a84`):
 3. `sync-convex-env.sh` — pushes per-env secrets to the selected deployment with
    `convex env set`, routing each set through `convex-with-env.sh` (`--prod` selects
    dev vs prod). Skips unset keys; syncs `CLERK_JWT_ISSUER_DOMAIN`,
-   `LIGHTHOUSE_WORKER_URL`, `LIGHTHOUSE_WORKER_SECRET`, `RESEND_API_KEY`,
+   `LIGHTHOUSE_WORKER_URL`, `LIGHTHOUSE_WORKER_SECRET`,
+   `LIGHTHOUSE_AWS_ACCESS_KEY_ID`, `LIGHTHOUSE_AWS_SECRET_ACCESS_KEY`,
+   `LIGHTHOUSE_AWS_SESSION_TOKEN`, `RESEND_API_KEY`,
    `RESEND_FROM_EMAIL`, `CREDITS_SERVICE_SECRET_EZAUDIT`.
 
 ## Required deployment env vars
@@ -102,10 +105,18 @@ Set on the ezaudit Convex deployments (dev and prod), via `convex env set` / das
 | Variable | dev | prod |
 |---|---|---|
 | `CLERK_JWT_ISSUER_DOMAIN` | Clerk dev FAPI URL | `https://clerk.sdee3.com` |
-| `LIGHTHOUSE_WORKER_URL` | dev Lambda Function URL | prod Lambda Function URL |
-| `LIGHTHOUSE_WORKER_SECRET` | dev secret | prod secret |
-| `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | dev | prod |
+| `LIGHTHOUSE_WORKER_URL` | Lambda Function URL if enabled | required Lambda Function URL |
+| `LIGHTHOUSE_AWS_ACCESS_KEY_ID` | caller key ID if enabled | required dedicated worker caller key ID |
+| `LIGHTHOUSE_AWS_SECRET_ACCESS_KEY` | caller key secret if enabled | required dedicated worker caller secret |
+| `LIGHTHOUSE_AWS_SESSION_TOKEN` | optional for temporary credentials | optional for temporary credentials |
+| `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | not set (email skipped and logged) | not set (email skipped and logged) |
 | `CREDITS_SERVICE_SECRET_EZAUDIT` | set 2026-10 (credits display adopted; matches identity dev) | set 2026-10 (matches identity prod) |
+
+`LIGHTHOUSE_WORKER_URL`, `LIGHTHOUSE_AWS_ACCESS_KEY_ID`, and
+`LIGHTHOUSE_AWS_SECRET_ACCESS_KEY` are required for the remote IAM path. The session
+token is required only for temporary AWS credentials. `LIGHTHOUSE_WORKER_SECRET` is
+not read by the production IAM handler. See the worker runbook for the Lambda
+environment values, IAM policy, release, rotation, rollback, and cost estimate.
 
 Non-secret vars can be `env set`; secrets should be pushed with `convex:env:sync[:prod]`
 from the gitignored env files.

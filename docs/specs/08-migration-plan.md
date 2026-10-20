@@ -100,7 +100,7 @@ it is `../astro-mate`, `../identity`, and `../infrastructure`.
       `submit` / `listMine` / `get` / `setVisibility` with owner + visibility gating, and
       the `auditPipeline` (internalAction `run`/`retry`, bounded attempts + backoff).
 - [x] D1–D3 decisions are locked in `docs/adr/` (0001–0003) and implemented in code:
-      `lib/lighthouse.ts` (remote worker + dev-seed), `lib/email.ts` (Resend, fail-open).
+      `lighthouseWorker.ts` (SigV4 worker call + dev-seed), `lib/email.ts` (Resend, fail-open).
 - [x] Wired to real UI data: reactive `useQuery` lists, share-visibility toggle, submit
       alerts (`2c884dd`); dev deployment `dev:bold-orca-397` pushed (`899fa27`).
 - [ ] Legacy `audits` rows are **not** migrated yet: the one-off `importLegacy` mutation
@@ -109,10 +109,10 @@ it is `../astro-mate`, `../identity`, and `../infrastructure`.
       gitignored `.scratch/laravel-leftovers/`.
 - [ ] Real-time dashboard updates (submitted audit appears **without a page reload**)
       are coded but not yet runtime-verified (spec 04's open box).
-- [ ] D1 is only half-live: no ezaudit Lighthouse Lambda worker exists in the AWS account
-      (only `astro-mate-ota-manifest` and `ai-debates-seo-router`), so
-      `lib/lighthouse.ts` currently runs in DEV-SEED mode unless
-      `LIGHTHOUSE_WORKER_URL` is set — see Shipped divergences.
+- [x] D1 worker is live: `ezaudit-lighthouse-worker` runs in `us-east-1` and the dev
+      deployment returns real Lighthouse scores. `lighthouseWorker.ts` fails when
+      `LIGHTHOUSE_WORKER_URL` is unset unless `LIGHTHOUSE_ALLOW_SEEDED_SCORES` is
+      `"true"` — see Shipped divergences. Prod still needs its environment values.
 - Gate: dashboard is fully driven by Convex queries ([x], `2c884dd`); submissions flow
   queued → done in real time ([~] pipeline + retry proven by tests, real-time rendering
   not yet attested); tests pass ([x] 10 backend cases).
@@ -209,12 +209,11 @@ production.)
 3. **`next/head` replaced by an in-house `Head` component**, not `react-helmet` (the
    spec allowed "or equivalent"); Google Analytics is injected at build time via a Vite
    `transformIndexHtml` plugin instead of a runtime conditional.
-4. **D1 is not fully live.** No ezaudit Lighthouse Lambda worker exists in the AWS
-   account; unless `LIGHTHOUSE_WORKER_URL` is set on a deployment,
-   `backend/convex/lib/lighthouse.ts` returns deterministic dev-seed scores, so
-   production audits are not yet real Lighthouse results. ADR 0001's decision stands;
-   the worker deployment is open work (likely in `../infrastructure`, outside this
-   repo).
+4. **D1 is live on dev only.** `ezaudit-lighthouse-worker` runs in the AWS account,
+   and the dev Convex deployment returns real Lighthouse scores. The prod deployment
+   still needs `LIGHTHOUSE_WORKER_URL` and the caller credentials. A missing URL now
+   fails the audit unless `LIGHTHOUSE_ALLOW_SEEDED_SCORES` is `"true"`. ADR 0001's
+   decision stands.
 5. **Legacy data import not executed.** `audits.importLegacy` (ADR 0004) is not
    implemented; the requirement and decision are unchanged. The only known local copy
    of the legacy Laravel database was verified empty on its 2026-10 deletion, so a

@@ -6,16 +6,17 @@
 
 ## Decision
 
-Run Lighthouse in an AWS Lambda container image (arm64, about 2048 MB, 120 second
-timeout), exposed with a Function URL, not attached to a VPC. `auditPipeline.run`
-calls it with `LIGHTHOUSE_WORKER_URL` and `LIGHTHOUSE_WORKER_SECRET`. The response is
+Run Lighthouse in an AWS Lambda arm64 container image with 2048 MB and a 120 second
+timeout. Expose an `AWS_IAM` Function URL and keep the function outside a VPC.
+`auditPipeline.run` calls a Node action that signs the request with SigV4. The action
+reads a dedicated IAM access key from Convex environment variables. The worker returns
 the four category scores the UI already stores.
 
 ## Why
 
-Convex cannot launch Chrome. Lambda's always-free tier (1,000,000 requests and
-400,000 GB-seconds per month, account-wide) covers on the order of 3,300 audits a
-month at 2 GB for 60 seconds, and the 15 minute timeout fits a real Lighthouse run.
+Convex cannot launch Chrome. At 100 audits per month and 11.3 seconds each, the
+estimated Lambda compute charge is about $0.04 before any account-wide free tier.
+See the worker runbook for the full monthly estimate and its assumptions.
 
 Cloudflare Workers cannot run the Lighthouse Node program (10 ms CPU on the free
 plan). Browser Run only supplies a browser, capped at 10 minutes a day on the free
@@ -31,3 +32,7 @@ Evidence and sources: [d1-lighthouse-host](../research/d1-lighthouse-host.md).
 - Do not enable provisioned concurrency, and do not log the full Lighthouse JSON.
 - Package Chromium in the container image (`@sparticuz/chromium` arm64). A zip is the
   wrong package for that binary.
+- Restrict the IAM principal to this Function URL. Rotate its credentials.
+- Reserve concurrency at four audits.
+- The user selected no VPC or network-level egress controls. The proxy is an
+  application guardrail, not network isolation.

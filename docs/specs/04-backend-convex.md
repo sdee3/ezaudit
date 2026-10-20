@@ -1,6 +1,6 @@
 # 04 — Backend (Convex)
 
-**Status:** `partial` (backend domain shipped and verified; not complete because the production Lighthouse worker is not deployed and the D6 import has never run; open operational items: the Lambda Lighthouse worker is not deployed/attached — `lib/lighthouse.ts` falls back to dev-seed scores, and the D6 legacy-data import has never run — see Shipped divergences).
+**Status:** `partial` (backend domain shipped and verified; a local arm64 Lambda worker proof passed on 2026-10-19, but no worker is deployed to AWS and the D6 import has never run; see Shipped divergences).
 
 Dev deployment `dev:bold-orca-397` (project `stefan-djokic:ezaudit-91edc`) has the schema, functions, and tests. Auth is enforced on owner-only functions. The dev deployment is seeded with 4 sample audits. Real-time dashboard updates are wired at the code level (reactive `useQuery`); no browser-runtime session was recorded to confirm it live.
 
@@ -27,7 +27,7 @@ The frontend reaches this backend only through generated Convex artifacts and sh
 | Pusher real-time | Convex reactive queries (`useQuery` auto-updates) | ✅ |
 | Laravel Echo / `useEcho` | delete; use `useQuery` subscriptions | ✅ (no Echo consumer remains) |
 | Snappy server PDF | browser print ([ADR 0002](../adr/0002-pdf-browser-print.md)) | ✅ (`AuditResult.tsx` → `window.print()`) |
-| Lighthouse via queue job | AWS Lambda container + Function URL ([ADR 0001](../adr/0001-lighthouse-on-lambda.md)) | ◐ client shipped; the Lambda worker itself is not deployed (dev-seed fallback in `lib/lighthouse.ts`) |
+| Lighthouse via queue job | AWS Lambda container + Function URL ([ADR 0001](../adr/0001-lighthouse-on-lambda.md)) | ◐ client shipped; local arm64 container proof passed; AWS worker is not deployed |
 | Laravel mail | Resend from the Convex action ([ADR 0003](../adr/0003-email-resend.md)) | ✅ (no-op-logged when keys unset) |
 | MySQL/Redis/PHP in Docker | removed entirely | ✅ |
 
@@ -46,9 +46,10 @@ backend/
 │   ├── lib/
 │   │   ├── auth.ts              # requireUserId(ctx)
 │   │   ├── boundary.ts          # frontend-importable re-exports (no business logic yet)
-│   │   ├── lighthouse.ts        # POST the Lambda Function URL (dev-seed fallback)
+│   │   ├── lighthouse.ts        # score parsing and dev-seed helpers
 │   │   └── email.ts             # Resend audit-ready notification
 │   ├── audits.ts                # public queries/mutations (submit/list/get/setVisibility)
+│   ├── lighthouseWorker.ts      # Node action: SigV4 call to the Lambda Function URL
 │   ├── auditPipeline.ts         # internal actions: enqueue → run → persist → notify
 │   ├── audits.test.ts           # co-located convex-test
 │   └── _generated/              # committed codegen
@@ -136,9 +137,9 @@ Recorded in `docs/adr/`. Research for D1: [d1-lighthouse-host](../research/d1-li
 
 ### D1 — Lighthouse execution environment
 
-**Accepted:** AWS Lambda container image (arm64, ~2048 MB, 120s timeout) behind a
-Function URL, not in a VPC. `lib/lighthouse.ts` POSTs `{ url }` with
-`LIGHTHOUSE_WORKER_SECRET` and stores the four category scores. See
+**Accepted:** AWS Lambda container image (arm64, ~2048 MB, 120s timeout) behind an
+`AWS_IAM` Function URL, not in a VPC. The `lighthouseWorker` Node action signs `{ url }`
+with SigV4 and stores the four category scores. See
 [ADR 0001](../adr/0001-lighthouse-on-lambda.md).
 
 Lambda's always-free tier (1,000,000 requests and 400,000 GB-seconds per month) covers
@@ -148,12 +149,20 @@ capped at 10 minutes a day on the free plan. Cloudflare Containers require the
 $5/month Workers Paid plan.
 
 Shipped note: the remote path is implemented and env-keyed
-(`LIGHTHOUSE_WORKER_URL`, `LIGHTHOUSE_WORKER_SECRET`; both are in
-`scripts/sync-convex-env.sh`'s key list), but no Lambda worker exists in this repo or
-CI — until one is attached, the runner uses the **dev-seed fallback**: without
-`LIGHTHOUSE_WORKER_URL` it returns deterministic FNV-1a-hashed placeholder scores per
-domain so the submit → run → done flow completes without a worker. Tests exercise the
-remote path by stubbing the URL + `fetch`.
+(`LIGHTHOUSE_WORKER_URL` and IAM signing credentials; all are in
+`scripts/sync-convex-env.sh`'s key list). The local proof in
+`workers/lighthouse-worker/` returned all four scores for `ezaudit.sdee3.com` in
+9.5 seconds at 2048 MB through a local egress proxy. The proxy rejected a direct
+loopback request and filters proxy requests by public IP. Chromium sends normal
+navigation, redirect, and page resource requests through it. It supports public web
+domains on ports 80 and 443. It does not provide AWS network isolation or block every
+possible direct browser network path. No AWS worker
+or image publish workflow exists yet. Until a worker is attached, the runner uses
+the **dev-seed fallback**. The Convex Lighthouse action fails when
+`LIGHTHOUSE_WORKER_URL` is unset, unless `LIGHTHOUSE_ALLOW_SEEDED_SCORES` is
+`"true"`. With that override, it returns deterministic FNV-1a-hashed placeholder
+scores per domain so the submit → run → done flow completes without a worker. Tests
+exercise the remote path by stubbing the URL + `fetch`.
 
 ### D2 — PDF generation
 
@@ -187,18 +196,18 @@ plan.
 Code or runtime behaviour that differs from the requirement as written above
 (requirements themselves are unchanged):
 
-1. **Dev-seed Lighthouse fallback** — `lib/lighthouse.ts` returns deterministic
-   placeholder scores whenever `LIGHTHOUSE_WORKER_URL` is unset. ADR 0001 specifies
-   the Lambda Function URL as the execution environment only; the shipped code adds a
-   documented local fallback so the pipeline completes end to end in dev. The remote
-   path is exercised in tests by stubbing the env var and `fetch`.
-2. **Lambda worker not deployed** — the D1 container/Function URL has no code,
-   Terraform, or CI artifact in this repo; production audits therefore currently run
-   on the dev-seed path until the worker is attached and the env vars are set on the
-   prod deployment (`standing-malamute-74` per spec 05).
-   `lib/lighthouse.ts`'s header comment also documents the worker response as
-   `'best-practices'`, while the parser validates `bestPractices` — the worker must
-   send the camelCase key (the comment is stale, the code is what runs).
+1. **Dev-seed Lighthouse fallback** — `lighthouseWorker.ts` returns deterministic
+   placeholder scores only when `LIGHTHOUSE_ALLOW_SEEDED_SCORES` is `"true"` and
+   `LIGHTHOUSE_WORKER_URL` is unset. ADR 0001 specifies the Lambda Function URL as the
+   execution environment only; the shipped code adds a documented local fallback so
+   the pipeline completes end to end in dev. Without the flag a missing URL fails the
+   audit. The remote path is exercised in tests by stubbing the env var and `fetch`.
+2. **Lambda worker is deployed to dev, not prod** —
+   `workers/lighthouse-worker/` contains the arm64 container, the handler, and
+   `provision.sh`. The function `ezaudit-lighthouse-worker` runs in `us-east-1`, and
+   the dev deployment returns real Lighthouse scores. No Terraform stack or image
+   publish workflow exists yet. The prod deployment (`standing-malamute-74`) still
+   needs `LIGHTHOUSE_WORKER_URL` and the caller credentials.
 3. **D6 migration not executed** — `audits.importLegacy` has never been written or
    run; no legacy rows have been imported to either deployment.
 4. **`userId` nullability** — the original data-model table said `string`; shipped

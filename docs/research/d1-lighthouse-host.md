@@ -16,8 +16,9 @@ Chromium. A screenshot or HTML-fetch API is not a substitute.
 
 **AWS Lambda, container image, arm64, Lambda Function URL, not in a VPC.**
 
-Convex calls it from `auditPipeline.run` with `LIGHTHOUSE_WORKER_URL` and
-`LIGHTHOUSE_WORKER_SECRET`. Suggested size: 2048 MB, timeout 120 seconds. 1769 MB is
+Convex calls it through a Node action that signs the Function URL with SigV4. The
+action reads a dedicated IAM access key from Convex environment variables. Suggested
+size: 2048 MB, timeout 120 seconds. 1769 MB is
 one vCPU; Lighthouse plus Chromium wants at least that. Return the four category
 scores, not screenshots or the trace, so the body stays under Lambda's synchronous
 payload limit and Convex documents stay small.

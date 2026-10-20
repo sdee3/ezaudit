@@ -122,6 +122,8 @@ label, and text ([07-testing-and-ci](./07-testing-and-ci.md)).
   `AuditResult` — all consume `PrintContext` directly).
 - ✅ "Export to PDF" triggers `window.print()`; `window.onafterprint` clears the flag
   (`frontend/src/components/AuditResult/AuditResult.tsx`).
+- ✅ `frontend/src/print.css` hides the cookie banner and every `print-hidden` element under
+  `@media print`. Cmd+P and "Export to PDF" print the same report (ADR 0002).
 - ✅ The target keeps the browser print path only (`ADR 0002`); no server-side PDF
   generation exists in `frontend/`.
 
