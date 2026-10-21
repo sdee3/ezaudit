@@ -74,12 +74,13 @@ async function invoke(body, authorization = `Bearer ${secret}`) {
 }
 
 assert.equal((await invoke({ url: target }, "Bearer wrong-secret")).statusCode, 401)
-assert.equal((await invoke({ url: "http://127.0.0.1/" })).statusCode, 400)
+assert.equal((await invoke({ auditId: "proof-audit", url: "http://127.0.0.1/" })).statusCode, 400)
 
 const started = Date.now()
-const result = await invoke({ url: target })
+const result = await invoke({ auditId: "proof-audit", url: target })
 assert.equal(result.statusCode, 200, JSON.stringify(result))
 const payload = JSON.parse(result.body)
+assert.equal(payload.auditId, "proof-audit")
 for (const category of ["performance", "accessibility", "bestPractices", "seo"]) {
   const score = payload.scores?.[category]?.score
   if (typeof score !== "number" || score < 0 || score > 1) {
