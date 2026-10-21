@@ -12,8 +12,8 @@ import DashboardPage from './pages/dashboard'
 import PasswordResetPage from './pages/dashboard/password-reset'
 import HomePage from './pages'
 import TermsConditions from './pages/terms-and-conditions'
-import ChildSafetyPage from './pages/child-safety'
 import FeedbackPage from './pages/feedback'
+import ChildSafetyPage from './pages/child-safety'
 import { ROUTES, theme } from './utils'
 
 // ChakraProvider lives in main.tsx so the session guard can use the theme.
