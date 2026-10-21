@@ -346,36 +346,42 @@ export const AuditResult = ({
           {audit.findings.length === 0 ? (
             <Text>No Lighthouse checks failed.</Text>
           ) : (
-            audit.findings.map((finding) => (
-              <Box
-                key={`${finding.category}:${finding.id}`}
-                py={4}
-                borderTopWidth="1px"
-                borderColor="gray.200"
-              >
-                <Text fontSize="sm" color="gray.600" mb={1}>
-                  {{
-                    accessibility: 'Accessibility',
-                    bestPractices: 'Best practices',
-                    performance: 'Performance',
-                    seo: 'SEO',
-                  }[finding.category]}
-                </Text>
-                <Heading as="h3" size="md" mb={2}>
-                  {finding.title}
-                </Heading>
-                <Text mb={finding.suggestedFixes.length > 0 ? 3 : 0}>{renderFindingText(finding.description)}</Text>
-                {finding.suggestedFixes.length > 0 && (
-                  <Box as="ul" pl={5}>
-                    {finding.suggestedFixes.map((fix) => (
-                      <Text as="li" key={fix}>
-                        {renderFindingText(fix)}
-                      </Text>
-                    ))}
-                  </Box>
-                )}
-              </Box>
-            ))
+            audit.findings.map((finding) => {
+              const suggestedFixes = [...new Set(finding.suggestedFixes)].filter(
+                (fix) => fix !== finding.description,
+              )
+
+              return (
+                <Box
+                  key={`${finding.category}:${finding.id}`}
+                  py={4}
+                  borderTopWidth="1px"
+                  borderColor="gray.200"
+                >
+                  <Text fontSize="sm" color="gray.600" mb={1}>
+                    {{
+                      accessibility: 'Accessibility',
+                      bestPractices: 'Best practices',
+                      performance: 'Performance',
+                      seo: 'SEO',
+                    }[finding.category]}
+                  </Text>
+                  <Heading as="h3" size="md" mb={2}>
+                    {finding.title}
+                  </Heading>
+                  <Text mb={suggestedFixes.length > 0 ? 3 : 0}>{renderFindingText(finding.description)}</Text>
+                  {suggestedFixes.length > 0 && (
+                    <Box as="ul" pl={5}>
+                      {suggestedFixes.map((fix) => (
+                        <Text as="li" key={fix}>
+                          {renderFindingText(fix)}
+                        </Text>
+                      ))}
+                    </Box>
+                  )}
+                </Box>
+              )
+            })
           )}
         </Box>
       )}

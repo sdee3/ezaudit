@@ -76,7 +76,11 @@ describe('audit owner actions', () => {
                   title: 'Images need alt text',
                   description: 'Add alternative text to images.',
                   score: 0,
-                  suggestedFixes: ['Add descriptive alt text.'],
+                  suggestedFixes: [
+                    'Add alternative text to images.',
+                    'Add descriptive alt text.',
+                    'Add descriptive alt text.',
+                  ],
                 },
               ],
             }}
@@ -91,5 +95,7 @@ describe('audit owner actions', () => {
 
     expect(html).toContain('Images need alt text')
     expect(html).toContain('Add descriptive alt text.')
+    expect(html.match(/Add alternative text to images\./g)).toHaveLength(1)
+    expect(html.match(/Add descriptive alt text\./g)).toHaveLength(1)
   })
 })
