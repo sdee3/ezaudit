@@ -37,6 +37,10 @@ function renderAudit(user: { id: string } | null, retryEligible: boolean) {
 }
 
 describe('audit owner actions', () => {
+  it('links to the audited website when the domain has no scheme', () => {
+    expect(renderAudit(null, false)).toContain('href="https://example.com"')
+  })
+
   it('shows restart only when the owner can restart an audit', () => {
     const html = renderAudit({ id: 'owner_1' }, true)
     expect(html).toContain('Restart audit')

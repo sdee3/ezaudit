@@ -64,6 +64,9 @@ export const AuditResult = ({
   isGuestAccess = false,
 }: Props) => {
   const { isPrinting, setIsPrinting } = useContext(PrintContext)
+  const websiteUrl = /^https?:\/\//i.test(audit.domain)
+    ? audit.domain
+    : `https://${audit.domain}`
   const { user } = useContext(AuthContext)
   const { isOpen, onOpen, onClose } = useDisclosure()
   const restartDialog = useDisclosure()
@@ -116,7 +119,7 @@ export const AuditResult = ({
         <strong>Website audited: </strong>
         <Link
           color="blue.600"
-          href={audit.domain}
+          href={websiteUrl}
           target="_blank"
           rel="noopener noreferrer"
         >
