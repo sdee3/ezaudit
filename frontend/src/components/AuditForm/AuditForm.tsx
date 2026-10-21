@@ -53,25 +53,40 @@ export const AuditForm = () => {
   const reportLink = apiResponseOutput?.auditId
     ? reportHref(apiResponseOutput.auditId, !!user, apiResponseOutput.guestToken)
     : null
+  const submitButton = (
+    <Button
+      flexShrink={0}
+      isLoading={isLoading}
+      type="submit"
+      variant="outline"
+      colorScheme="blue"
+      isDisabled={!!errors?.domain || !!errors?.email}
+    >
+      Submit
+    </Button>
+  )
 
   return (
     <>
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormControl id="auditForm">
           <FormLabel htmlFor="domain">Your website to audit</FormLabel>
-          <Flex mb="4">
+          <Flex mb="4" gap={2}>
             <InputField
               id="domain"
               placeholder="Enter your domain here"
               variant="flushed"
+              flex="1"
+              minW={0}
               {...register('domain', {
                 required: true,
                 pattern: WEBSITE_REGEX_PATTERN,
               })}
             />
+            {user && submitButton}
           </Flex>
-          <Flex gap={2} align="flex-end">
-            {!user && (
+          {!user && (
+            <Flex gap={2} align="flex-end">
               <FormControl flex="1" minW={0}>
                 <FormLabel htmlFor="email">Email address</FormLabel>
                 <InputField
@@ -84,18 +99,9 @@ export const AuditForm = () => {
                   })}
                 />
               </FormControl>
-            )}
-            <Button
-              flexShrink={0}
-              isLoading={isLoading}
-              type="submit"
-              variant="outline"
-              colorScheme="blue"
-              isDisabled={!!errors?.domain || !!errors?.email}
-            >
-              Submit
-            </Button>
-          </Flex>
+              {submitButton}
+            </Flex>
+          )}
         </FormControl>
       </form>
 
