@@ -72,8 +72,8 @@ in earlier drafts).
 
 | Field | Type | Notes |
 |---|---|---|
-| `userId` | `string \| null` | `identity.subject` of the owner; **null for signed-out submissions** (the schema uses a union — the table row was updated to match the shipped validator). Index `by_userId`. |
-| `email` | `string` | submission email (may differ from the Clerk email for logged-out audits) |
+| `userId` | `string \| null` | `identity.subject` of the owner; null remains for historical ownerless rows. Index `by_userId`. |
+| `email` | `string` | verified email of the signed-in owner |
 | `domain` | `string` | audited URL |
 | `status` | `"queued" \| "running" \| "done" \| "error"` | drives real-time status |
 | `audit_result` | `object \| null` | `{ accessibility, bestPractices, performance, seo }` each `{ score }`. Deviation: the key is `bestPractices`, not `best-practices`, because Convex rejects hyphenated identifiers in validators. |
@@ -107,13 +107,18 @@ Queue/observability row per attempt: `auditId`, `attempt`, `startedAt`, `finishe
 duplicate submissions. Index: `by_auditId` (used by `countAttempts` / `markRunning`
 to derive the 1-based attempt counter).
 
+### `auditSubmitRateLimits` — shipped (`schema/audits.ts`)
+
+The table keeps one hourly counter for the global deployment, each user, and each
+normalized email. The limits are 100 global submissions, 5 per user, and 3 per email.
+
 ## Functions — shipped (`convex/audits.ts`, `convex/auditPipeline.ts`)
 
 | Function | Kind | Auth | Purpose |
 |---|---|---|---|
-| `audits.submit` | mutation | optional (public form) | validate domain/email, insert `audits` row `status: queued`, schedule `auditPipeline.run` (ownerless rows carry `userId: null`) |
+| `audits.submit` | mutation | required + verified email | validate domain and email ownership, apply hourly global, user, and email limits, insert a queued audit, then schedule `auditPipeline.run` |
 | `audits.listMine` | query | required | owner's audits, newest first via `by_userId_and_date` (drives the table) |
-| `audits.get` | query | optional | one audit; public if `is_public`, else owner-only; returns `null` for missing **and** forbidden (existence not leaked) |
+| `audits.get` | query | optional | one audit; public if `is_public`, else owner-only; public output omits email and userId; returns `null` for missing and forbidden rows |
 | `audits.setVisibility` | mutation | required + owner | toggle `is_public` (replaces the legacy PUT status endpoint); throws `Not found` for non-owners |
 | `auditPipeline.run` | internalAction | internal | call Lighthouse worker, persist result, set status, send email |
 | `auditPipeline.retry` | internalAction | internal | bounded retry on worker failure (max 3 attempts total, 5 s × attempt backoff scheduled from within the failed attempt) |
@@ -138,8 +143,9 @@ Recorded in `docs/adr/`. Research for D1: [d1-lighthouse-host](../research/d1-li
 ### D1 — Lighthouse execution environment
 
 **Accepted:** AWS Lambda container image (arm64, ~2048 MB, 120s timeout) behind an
-`AWS_IAM` Function URL, not in a VPC. The `lighthouseWorker` Node action signs `{ url }`
-with SigV4 and stores the four category scores. See
+`AWS_IAM` Function URL in a private VPC subnet. Lambda sends browser traffic through
+an in-VPC Squid proxy. The `lighthouseWorker` Node action signs `{ auditId, url }` with
+SigV4 and stores the four category scores. See
 [ADR 0001](../adr/0001-lighthouse-on-lambda.md).
 
 Lambda's always-free tier (1,000,000 requests and 400,000 GB-seconds per month) covers
@@ -208,15 +214,15 @@ Code or runtime behaviour that differs from the requirement as written above
    `workers/lighthouse-worker/` contains the arm64 container, the handler, and
    `provision.sh`. The function `ezaudit-lighthouse-worker` runs in `us-east-1`, and
    the dev deployment returns real Lighthouse scores. The 2026-10-20 read-only AWS check
-   confirmed `Active`, arm64, 2048 MB, 120 s, and `AWS_IAM`. No Terraform stack or image
-   publish workflow exists yet. The prod deployment (`standing-malamute-74`) has
+   confirmed `Active`, arm64, 2048 MB, 120 s, and `AWS_IAM`. Terraform now declares the
+   production and development workers, VPC, and proxy. These Terraform changes are not
+   applied. No image publish workflow exists. The prod deployment (`standing-malamute-74`) has
    `LIGHTHOUSE_WORKER_URL` and the caller credentials, verified 2026-10-20. A prod audit
    returned real scores that day.
 3. **D6 migration not executed** — `audits.importLegacy` has never been written or
    run; no legacy rows have been imported to either deployment.
-4. **`userId` nullability** — the original data-model table said `string`; shipped
-   schema is `v.union(v.string(), v.null())` because signed-out submissions exist
-   (ownerless rows). The table above reflects the shipped type.
+4. **`userId` nullability** — the schema remains nullable for historical ownerless rows.
+   New submissions require a signed-in owner.
 5. **`audits.test.ts` header says "spec 07"** — the co-located suite's doc-comment
    references spec 07 (testing) even though the cases belong to this spec's
    acceptance criteria; harmless comment drift, tests are the same ones spec 04

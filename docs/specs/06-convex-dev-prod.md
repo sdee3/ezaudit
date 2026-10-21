@@ -90,32 +90,38 @@ Three pieces, copied in shape from astro-mate (all committed in `1cc7a84`):
    pushing to another app's deployment. When `CONVEX_DEPLOYMENT` is absent from the env
    file, dev falls back to the hard-coded `dev:bold-orca-397`; prod requires it and fails
    otherwise.
-3. `sync-convex-env.sh` — pushes per-env secrets to the selected deployment with
+3. `sync-convex-env.sh` — pushes per-env values to the selected deployment with
    `convex env set`, routing each set through `convex-with-env.sh` (`--prod` selects
-   dev vs prod). Skips unset keys; syncs `CLERK_JWT_ISSUER_DOMAIN`,
-   `LIGHTHOUSE_WORKER_URL`, `LIGHTHOUSE_WORKER_SECRET`,
+   dev vs prod). Worker values come only from the selected env file. The script clears
+   inherited worker values and requires the URL and IAM key pair together. It syncs
+   `CLERK_JWT_ISSUER_DOMAIN`, `LIGHTHOUSE_WORKER_URL`,
    `LIGHTHOUSE_AWS_ACCESS_KEY_ID`, `LIGHTHOUSE_AWS_SECRET_ACCESS_KEY`,
    `LIGHTHOUSE_AWS_SESSION_TOKEN`, `RESEND_API_KEY`,
    `RESEND_FROM_EMAIL`, `CREDITS_SERVICE_SECRET_EZAUDIT`.
 
 ## Required deployment env vars
 
-Set on the ezaudit Convex deployments (dev and prod), via `convex env set` / dashboard:
+Set these values in each gitignored backend env file, then run the matching sync command.
+The development sync reads only `backend/.env.local`. The production sync reads only
+`backend/.env.production`. Give each deployment its own Lambda Function URL and dedicated
+IAM caller key pair. Do not copy a URL or caller key between files.
+
+| File | Required worker values | Optional worker value |
+|---|---|---|
+| `backend/.env.local` | Development `LIGHTHOUSE_WORKER_URL`, `LIGHTHOUSE_AWS_ACCESS_KEY_ID`, and `LIGHTHOUSE_AWS_SECRET_ACCESS_KEY` | `LIGHTHOUSE_AWS_SESSION_TOKEN` for temporary credentials |
+| `backend/.env.production` | Production `LIGHTHOUSE_WORKER_URL`, `LIGHTHOUSE_AWS_ACCESS_KEY_ID`, and `LIGHTHOUSE_AWS_SECRET_ACCESS_KEY` | `LIGHTHOUSE_AWS_SESSION_TOKEN` for temporary credentials |
+
+Set these other values on the ezaudit Convex deployments (dev and prod), via sync or dashboard:
 
 | Variable | dev | prod |
 |---|---|---|
 | `CLERK_JWT_ISSUER_DOMAIN` | Clerk dev FAPI URL | `https://clerk.sdee3.com` |
-| `LIGHTHOUSE_WORKER_URL` | Lambda Function URL if enabled | required Lambda Function URL |
-| `LIGHTHOUSE_AWS_ACCESS_KEY_ID` | caller key ID if enabled | required dedicated worker caller key ID |
-| `LIGHTHOUSE_AWS_SECRET_ACCESS_KEY` | caller key secret if enabled | required dedicated worker caller secret |
-| `LIGHTHOUSE_AWS_SESSION_TOKEN` | optional for temporary credentials | optional for temporary credentials |
 | `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | not set (email skipped and logged) | set 2026-10-20, sender `ezaudit@sdee3.com`; audit-ready email verified 2026-10-20 |
 | `CREDITS_SERVICE_SECRET_EZAUDIT` | set 2026-10 (credits display adopted; matches identity dev) | set 2026-10 (matches identity prod) |
 
 `LIGHTHOUSE_WORKER_URL`, `LIGHTHOUSE_AWS_ACCESS_KEY_ID`, and
-`LIGHTHOUSE_AWS_SECRET_ACCESS_KEY` are required for the remote IAM path. The session
-token is required only for temporary AWS credentials. `LIGHTHOUSE_WORKER_SECRET` is
-not read by the production IAM handler. See the worker runbook for the Lambda
+`LIGHTHOUSE_AWS_SECRET_ACCESS_KEY` are required in both files. The session token is
+required only for temporary AWS credentials. See the worker runbook for the Lambda
 environment values, IAM policy, release, rotation, rollback, and cost estimate.
 
 Non-secret vars can be `env set`; secrets should be pushed with `convex:env:sync[:prod]`

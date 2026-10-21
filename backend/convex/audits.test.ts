@@ -11,6 +11,7 @@ import { parseWorkerResponse, seededScores } from "./lib/lighthouse"
  */
 
 const VALID = { domain: "https://example.com", email: "owner@example.com" }
+const OWNER = { subject: "user_1", email: "owner@example.com", email_verified: true }
 const FINDING = {
   id: "image-alt",
   category: "accessibility" as const,
@@ -18,6 +19,19 @@ const FINDING = {
   description: "Add alternative text to image elements.",
   score: 0,
   suggestedFixes: ["Add alternative text to image elements."],
+}
+
+function submitAs(
+  t: ReturnType<typeof createConvexTest>,
+  identity = OWNER,
+  args = VALID,
+) {
+  return t.withIdentity(identity).mutation(api.audits.submit, args)
+}
+
+async function hashGuestToken(token: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token))
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")
 }
 
 async function insertAudit(
@@ -51,57 +65,74 @@ async function insertAudit(
   return id as Id<"audits">
 }
 
-test("submit requires no auth and creates a queued, ownerless audit", async () => {
+test("submit requires a verified matching email and creates an owner audit", async () => {
   const t = createConvexTest()
 
-  const { auditId: id, guestToken } = await t.mutation(api.audits.submit, VALID)
+  await expect(t.mutation(api.audits.submit, VALID)).rejects.toThrowError("Not authenticated")
+  await expect(submitAs(t, { ...OWNER, email_verified: false })).rejects.toThrowError(/verified/i)
+  await expect(submitAs(t, { ...OWNER, email: "other@example.com" })).rejects.toThrowError(/verified/i)
+
+  const { auditId: id } = await submitAs(t)
 
   const audit = await t.run(async (ctx) => await ctx.db.get(id))
   expect(audit).toMatchObject({
-    userId: null,
+    userId: OWNER.subject,
     email: "owner@example.com",
     domain: "https://example.com",
     status: "queued",
     audit_result: null,
     is_public: false,
   })
-  expect(guestToken).toMatch(/^[A-Za-z0-9_-]{43}$/)
-  expect(audit?.guestTokenHash).toMatch(/^[a-f0-9]{64}$/)
-  expect(audit?.guestTokenHash).not.toBe(guestToken)
-  expect(audit?.guestTokenExpiresAt).toBe(audit!.createdAt + 30 * 24 * 60 * 60 * 1000)
-  expect(guestToken).toBeDefined()
-  const guestReport = await t.query(api.audits.getGuest, { id, token: guestToken! })
-  expect(guestReport).toMatchObject({ _id: id })
-  expect(guestReport).not.toHaveProperty("guestTokenHash")
-  expect(await t.query(api.audits.getGuest, { id, token: "wrong-token" })).toBeNull()
+  expect(audit?.guestTokenHash).toBeUndefined()
+  expect(await t.withIdentity(OWNER).query(api.audits.get, { id })).toMatchObject({ _id: id })
 })
 
 test("getGuest rejects expired tokens", async () => {
   const t = createConvexTest()
-  const { auditId, guestToken } = await t.mutation(api.audits.submit, VALID)
-  await t.run(async (ctx) => ctx.db.patch(auditId, { guestTokenExpiresAt: Date.now() - 1 }))
-  expect(await t.query(api.audits.getGuest, { id: auditId, token: guestToken! })).toBeNull()
+  const token = "legacy-guest-token"
+  const auditId = await insertAudit(t, {
+    guestTokenHash: await hashGuestToken(token),
+    guestTokenExpiresAt: Date.now() - 1,
+  })
+  expect(await t.query(api.audits.getGuest, { id: auditId, token })).toBeNull()
+})
+
+test("getGuest omits owner fields from legacy guest reports", async () => {
+  const t = createConvexTest()
+  const token = "legacy-guest-token"
+  const auditId = await insertAudit(t, {
+    userId: "legacy-owner",
+    email: "private@example.com",
+    guestTokenHash: await hashGuestToken(token),
+    guestTokenExpiresAt: Date.now() + 60_000,
+  })
+
+  const report = await t.query(api.audits.getGuest, { id: auditId, token })
+  expect(report).toMatchObject({ _id: auditId })
+  expect(report).not.toHaveProperty("email")
+  expect(report).not.toHaveProperty("userId")
+  expect(report).not.toHaveProperty("guestTokenHash")
 })
 
 test("submit validates the domain", async () => {
   const t = createConvexTest()
 
   await expect(
-    t.mutation(api.audits.submit, { ...VALID, domain: "not a domain" }),
+    submitAs(t, OWNER, { ...VALID, domain: "not a domain" }),
   ).rejects.toThrowError(/domain/i)
 
   await expect(
-    t.mutation(api.audits.submit, { ...VALID, domain: "example" }),
+    submitAs(t, OWNER, { ...VALID, domain: "example" }),
   ).rejects.toThrowError(/domain/i)
 })
 
 test("signed-in submission keeps owner access and does not issue a guest token", async () => {
   const t = createConvexTest()
-  const result = await t.withIdentity({ subject: "user_1" }).mutation(api.audits.submit, VALID)
+  const result = await submitAs(t)
 
   expect(result).toMatchObject({ auditId: expect.any(String) })
   expect(result).not.toHaveProperty("guestToken")
-  expect(await t.withIdentity({ subject: "user_1" }).query(api.audits.get, { id: result.auditId }))
+  expect(await t.withIdentity(OWNER).query(api.audits.get, { id: result.auditId }))
     .toMatchObject({ userId: "user_1", is_public: false })
 })
 
@@ -109,7 +140,7 @@ test("submit validates the email", async () => {
   const t = createConvexTest()
 
   await expect(
-    t.mutation(api.audits.submit, { ...VALID, email: "nope" }),
+    submitAs(t, OWNER, { ...VALID, email: "nope" }),
   ).rejects.toThrowError(/email/i)
 })
 
@@ -120,7 +151,7 @@ test("submit schedules the pipeline run", async () => {
 
   const t = createConvexTest()
 
-  await t.mutation(api.audits.submit, VALID)
+  await submitAs(t)
   await t.finishAllScheduledFunctions(vi.runAllTimers)
 
   const queued = await t.run(async (ctx) => await ctx.db.query("audits").first())
@@ -132,6 +163,49 @@ test("submit schedules the pipeline run", async () => {
 
   vi.unstubAllEnvs()
   vi.useRealTimers()
+})
+
+test("submit applies hourly user, email, and global limits", async () => {
+  const emailTest = createConvexTest()
+  for (const subject of ["email-user-1", "email-user-2", "email-user-3"]) {
+    await submitAs(emailTest, { subject, email: "owner@example.com", email_verified: true }, {
+      ...VALID,
+      email: "OWNER@example.com",
+    })
+  }
+  await expect(submitAs(emailTest, {
+    subject: "email-user-4",
+    email: "owner@example.com",
+    email_verified: true,
+  })).rejects.toThrowError(/rate limit/i)
+
+  const userTest = createConvexTest()
+  for (let index = 0; index < 5; index += 1) {
+    const email = `user-${index}@example.com`
+    await submitAs(userTest, { subject: "limited-user", email, email_verified: true }, {
+      ...VALID,
+      email,
+    })
+  }
+  await expect(submitAs(userTest, {
+    subject: "limited-user",
+    email: "user-5@example.com",
+    email_verified: true,
+  }, { ...VALID, email: "user-5@example.com" })).rejects.toThrowError(/rate limit/i)
+
+  const globalTest = createConvexTest()
+  for (let index = 0; index < 100; index += 1) {
+    const email = `global-${index}@example.com`
+    await submitAs(globalTest, { subject: `global-user-${index}`, email, email_verified: true }, {
+      ...VALID,
+      email,
+    })
+  }
+  await expect(submitAs(globalTest, {
+    subject: "global-user-100",
+    email: "global-100@example.com",
+    email_verified: true,
+  }, { ...VALID, email: "global-100@example.com" })).rejects.toThrowError(/rate limit/i)
 })
 
 test("listMine is ordered newest first and scoped to the owner", async () => {
@@ -169,6 +243,9 @@ test("get serves public audits to anyone and private audits only to the owner", 
   expect(await t.query(api.audits.get, { id: publicId as Id<"audits"> })).toMatchObject({
     is_public: true,
   })
+  const publicAudit = await t.query(api.audits.get, { id: publicId as Id<"audits"> })
+  expect(publicAudit).not.toHaveProperty("email")
+  expect(publicAudit).not.toHaveProperty("userId")
   expect(await t.query(api.audits.get, { id: privateId as Id<"audits"> })).toBeNull()
 
   // other users: private not readable
@@ -318,7 +395,7 @@ test("pipeline marks audits error and retries up to 3 attempts when the worker f
 
   try {
     const t = createConvexTest()
-    const { auditId: id } = await t.mutation(api.audits.submit, VALID)
+    const { auditId: id } = await submitAs(t)
 
     await t.finishAllScheduledFunctions(vi.runAllTimers)
 
@@ -344,21 +421,29 @@ test("pipeline persists worker findings and preserves all category scores", asyn
   vi.stubEnv("LIGHTHOUSE_WORKER_URL", "https://worker.lambda-url.us-east-1.on.aws/run")
   vi.stubEnv("LIGHTHOUSE_AWS_ACCESS_KEY_ID", "test-access-key")
   vi.stubEnv("LIGHTHOUSE_AWS_SECRET_ACCESS_KEY", "test-secret-key")
-  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-    requestId: "worker-req-1",
-    scores: {
-      performance: { score: 0.91 },
-      accessibility: { score: 0.82 },
-      bestPractices: { score: 0.73 },
-      seo: { score: 0.64 },
-    },
-    findings: [FINDING],
-  }), { status: 200, headers: { "content-type": "application/json" } })))
+  const workerFetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+    const request = JSON.parse(String(init?.body)) as { auditId: string }
+    return new Response(JSON.stringify({
+      auditId: request.auditId,
+      requestId: "worker-req-1",
+      scores: {
+        performance: { score: 0.91 },
+        accessibility: { score: 0.82 },
+        bestPractices: { score: 0.73 },
+        seo: { score: 0.64 },
+      },
+      findings: [FINDING],
+    }), { status: 200, headers: { "content-type": "application/json" } })
+  })
+  vi.stubGlobal("fetch", workerFetch)
 
   try {
     const t = createConvexTest()
-    const { auditId: id } = await t.mutation(api.audits.submit, VALID)
+    const { auditId: id } = await submitAs(t)
     await t.finishAllScheduledFunctions(vi.runAllTimers)
+
+    const sentBody = JSON.parse(String(workerFetch.mock.calls[0]?.[1]?.body)) as { auditId: string }
+    expect(sentBody.auditId).toBe(id)
 
     const audit = await t.run(async (ctx) => await ctx.db.get(id as Id<"audits">))
     expect(audit).toMatchObject({
@@ -415,8 +500,12 @@ test("runAudit throws when the worker URL is unset and seeded scores are not all
 
   try {
     const t = createConvexTest()
+    const auditId = await insertAudit(t)
     await expect(
-      t.action(internal.lighthouseWorker.runAudit, { domain: "example.com" }),
+      t.action(internal.lighthouseWorker.runAudit, {
+        auditId,
+        domain: "example.com",
+      }),
     ).rejects.toThrowError("LIGHTHOUSE_WORKER_URL is not configured")
   } finally {
     vi.unstubAllEnvs()
@@ -429,8 +518,9 @@ test("runAudit returns seeded scores when the flag is true and the URL is unset"
 
   try {
     const t = createConvexTest()
-    const result = await t.action(internal.lighthouseWorker.runAudit, { domain: "example.com" })
-    expect(result).toEqual({ scores: seededScores("example.com"), findings: [] })
+    const auditId = await insertAudit(t)
+    const result = await t.action(internal.lighthouseWorker.runAudit, { auditId, domain: "example.com" })
+    expect(result).toEqual({ auditId, scores: seededScores("example.com"), findings: [] })
   } finally {
     vi.unstubAllEnvs()
   }
@@ -448,6 +538,7 @@ test("parseWorkerResponse ignores the seeded-score flag", () => {
 
   try {
     const parsed = parseWorkerResponse({
+      auditId: "audits:expected",
       requestId: "req-1",
       scores: {
         performance: { score: 0.91 },
@@ -456,8 +547,9 @@ test("parseWorkerResponse ignores the seeded-score flag", () => {
         seo: { score: 0.64 },
       },
       findings: [FINDING],
-    })
+    }, "audits:expected")
     expect(parsed).toEqual({
+      auditId: "audits:expected",
       scores: {
         performance: { score: 0.91 },
         accessibility: { score: 0.82 },
@@ -470,7 +562,7 @@ test("parseWorkerResponse ignores the seeded-score flag", () => {
     expect(parsed.scores).not.toEqual(seededScores("example.com"))
 
     // Still rejects malformed bodies, flag or not.
-    expect(() => parseWorkerResponse({ scores: { performance: { score: 2 } } })).toThrowError(
+    expect(() => parseWorkerResponse({ auditId: "audits:expected", scores: { performance: { score: 2 } } }, "audits:expected")).toThrowError(
       /four category scores/,
     )
     const validScores = {
@@ -479,17 +571,25 @@ test("parseWorkerResponse ignores the seeded-score flag", () => {
       bestPractices: { score: 0.73 },
       seo: { score: 0.64 },
     }
-    expect(() => parseWorkerResponse({ scores: validScores })).toThrowError(/malformed findings/)
-    expect(() => parseWorkerResponse({ scores: validScores, findings: [{ ...FINDING, title: 2 }] }))
+    expect(() => parseWorkerResponse({ auditId: "audits:expected", scores: validScores }, "audits:expected")).toThrowError(/malformed findings/)
+    expect(() => parseWorkerResponse({ auditId: "audits:expected", scores: validScores, findings: [{ ...FINDING, title: 2 }] }, "audits:expected"))
       .toThrowError(/malformed findings/)
     expect(() => parseWorkerResponse({
+      auditId: "audits:expected",
       scores: validScores,
       findings: [{ ...FINDING, suggestedFixes: [null] }],
-    })).toThrowError(/malformed findings/)
+    }, "audits:expected")).toThrowError(/malformed findings/)
     expect(() => parseWorkerResponse({
+      auditId: "audits:expected",
       scores: validScores,
       findings: [{ ...FINDING, suggestedFixes: undefined }],
-    })).toThrowError(/malformed findings/)
+    }, "audits:expected")).toThrowError(/malformed findings/)
+
+    expect(() => parseWorkerResponse({
+      auditId: "audits:other",
+      scores: validScores,
+      findings: [FINDING],
+    }, "audits:expected")).toThrowError(/audit ID does not match/)
   } finally {
     vi.unstubAllEnvs()
   }

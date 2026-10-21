@@ -16,6 +16,14 @@ Chromium. A screenshot or HTML-fetch API is not a substitute.
 
 **AWS Lambda, container image, arm64, Lambda Function URL, not in a VPC.**
 
+## Decision update, 2026-10-21
+
+The security review changed the networking decision. Terraform now declares a private
+Lambda subnet and an in-VPC Squid proxy with restricted outbound ports. The proxy adds
+a standing cost and one failure point. See [ADR 0001](../adr/0001-lighthouse-on-lambda.md)
+and the [worker runbook](../../workers/lighthouse-worker/README.md). Terraform has not
+been applied.
+
 Convex calls it through a Node action that signs the Function URL with SigV4. The
 action reads a dedicated IAM access key from Convex environment variables. Suggested
 size: 2048 MB, timeout 120 seconds. 1769 MB is

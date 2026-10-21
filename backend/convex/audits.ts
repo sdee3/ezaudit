@@ -1,17 +1,8 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
+import type { MutationCtx } from "./_generated/server"
 import { internal } from "./_generated/api"
 import { requireUserId, getOptionalUserId } from "./lib/auth"
-
-const GUEST_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000
-
-async function createGuestToken(): Promise<string> {
-  const bytes = crypto.getRandomValues(new Uint8Array(32))
-  return btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "")
-}
 
 async function hashGuestToken(token: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token))
@@ -20,6 +11,22 @@ async function hashGuestToken(token: string): Promise<string> {
 
 function withoutGuestSecret<T extends { guestTokenHash?: string; guestTokenExpiresAt?: number }>(audit: T) {
   const { guestTokenHash: _hash, guestTokenExpiresAt: _expiry, ...report } = audit
+  return report
+}
+
+function withoutPrivateOwnerFields<T extends {
+  guestTokenHash?: string
+  guestTokenExpiresAt?: number
+  userId?: string | null
+  email?: string
+}>(audit: T) {
+  const {
+    guestTokenHash: _hash,
+    guestTokenExpiresAt: _expiry,
+    userId: _userId,
+    email: _email,
+    ...report
+  } = audit
   return report
 }
 
@@ -33,6 +40,45 @@ const DOMAIN_PATTERN =
   /^(https?:\/\/)?[\w-]+(\.[\w-]+)+(:\d+)?(\/\S*)?$/i
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+const SUBMIT_RATE_WINDOW_MS = 60 * 60 * 1000
+const SUBMIT_RATE_LIMITS = [
+  { key: "global", limit: 100 },
+  { key: "user", limit: 5 },
+  { key: "email", limit: 3 },
+] as const
+
+async function enforceSubmitRateLimits(
+  ctx: MutationCtx,
+  userId: string,
+  email: string,
+  now: number,
+) {
+  const keys = ["global", `user:${userId}`, `email:${email}`]
+  const counters = await Promise.all(keys.map(async (key) => {
+    const row = await ctx.db
+      .query("auditSubmitRateLimits")
+      .withIndex("by_key", (q) => q.eq("key", key))
+      .unique()
+    return { key, row, count: row && now - row.windowStart < SUBMIT_RATE_WINDOW_MS ? row.count : 0 }
+  }))
+
+  for (let index = 0; index < counters.length; index += 1) {
+    if (counters[index].count >= SUBMIT_RATE_LIMITS[index].limit) {
+      throw new Error("Submission rate limit exceeded")
+    }
+  }
+
+  for (const { key, row, count } of counters) {
+    if (row) {
+      await ctx.db.patch(row._id, {
+        windowStart: count === 0 ? now : row.windowStart,
+        count: count + 1,
+      })
+    } else {
+      await ctx.db.insert("auditSubmitRateLimits", { key, windowStart: now, count: 1 })
+    }
+  }
+}
 
 export function isLikelyDomain(input: string): boolean {
   const trimmed = input.trim()
@@ -42,8 +88,7 @@ export function isLikelyDomain(input: string): boolean {
 }
 
 /**
- * Public form submission. Auth is optional: signed-out visitors may submit,
- * the row is then ownerless (userId: null).
+ * Submit an audit for a verified email owned by the signed-in caller.
  */
 export const submit = mutation({
   args: {
@@ -61,10 +106,16 @@ export const submit = mutation({
       throw new Error("Invalid email address")
     }
 
-    const userId = await getOptionalUserId(ctx)
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error("Not authenticated")
+    const claims = identity as typeof identity & { email?: string; email_verified?: boolean }
+    const identityEmail = claims.email?.trim().toLowerCase()
+    if (claims.email_verified !== true || identityEmail !== email) {
+      throw new Error("Email must match the verified signed-in email")
+    }
+    const userId = identity.subject
     const now = Date.now()
-    const guestToken = userId === null ? await createGuestToken() : undefined
-    const guestTokenHash = guestToken === undefined ? undefined : await hashGuestToken(guestToken)
+    await enforceSubmitRateLimits(ctx, userId, email, now)
 
     const auditId = await ctx.db.insert("audits", {
       userId,
@@ -76,13 +127,11 @@ export const submit = mutation({
       date_of_request: now,
       createdAt: now,
       updatedAt: now,
-      guestTokenHash,
-      guestTokenExpiresAt: guestToken === undefined ? undefined : now + GUEST_TOKEN_TTL_MS,
     })
 
     await ctx.scheduler.runAfter(0, internal.auditPipeline.run, { auditId })
 
-    return guestToken === undefined ? { auditId } : { auditId, guestToken }
+    return { auditId }
   },
 })
 
@@ -118,7 +167,7 @@ export const get = query({
       return null
     }
     if (audit.is_public) {
-      return withoutGuestSecret(audit)
+      return withoutPrivateOwnerFields(audit)
     }
     const userId = await getOptionalUserId(ctx)
     if (userId !== null && audit.userId === userId) {
@@ -138,7 +187,7 @@ export const getGuest = query({
     if (audit === null || audit.is_public || !audit.guestTokenHash || !audit.guestTokenExpiresAt) return null
     if (audit.guestTokenExpiresAt <= Date.now()) return null
     if (await hashGuestToken(args.token) !== audit.guestTokenHash) return null
-    return withoutGuestSecret(audit)
+    return withoutPrivateOwnerFields(audit)
   },
 })
 

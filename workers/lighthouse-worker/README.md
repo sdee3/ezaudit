@@ -1,8 +1,12 @@
 # Lighthouse worker deployment
 
-The worker runs in `us-east-1` as an arm64 Lambda container. Set memory to 2048 MB,
-timeout to 120 seconds, reserved concurrency to 4, and Function URL auth to `AWS_IAM`.
-Do not attach a VPC. The user selected no VPC or network-level egress controls.
+Terraform manages the worker, caller users, Function URLs, VPC, and Squid proxy in the
+[infrastructure stack](../../../infrastructure/aws/ezaudit). The worker runs in `us-east-1` as an arm64 Lambda
+container. It uses 2048 MB, a 120-second timeout, reserved concurrency of 4, and
+`AWS_IAM`. Its execution role needs `AWSLambdaVPCAccessExecutionRole`.
+
+Terraform sets `LIGHTHOUSE_EGRESS_PROXY_URL` to the proxy's private address. The
+worker's local proxy sends checked HTTP requests and HTTPS tunnels to Squid.
 
 One deployed audit measured 11.9 seconds cold and 8.7 seconds warm at 2048 MB.
 Peak memory was 949 MB.
@@ -15,6 +19,7 @@ Set these Lambda environment variables:
 |---|---|
 | `LIGHTHOUSE_AUTH_MODE` | `iam` |
 | `LIGHTHOUSE_ALLOWED_CALLER_ARN` | Exact IAM user ARN for the Convex caller |
+| `LIGHTHOUSE_EGRESS_PROXY_URL` | `http://<proxy-private-ip>:3128` from Terraform |
 
 Do not set `LIGHTHOUSE_WORKER_SECRET` in IAM mode. Local bearer proof uses
 `LIGHTHOUSE_AUTH_MODE=bearer` and `LIGHTHOUSE_WORKER_SECRET` instead.
@@ -33,12 +38,34 @@ IAM user keys. Do not configure the bearer secret for production IAM calls.
 
 ## IAM permissions
 
-Use a dedicated IAM user for the Convex caller. The policy grants only Function URL invocation.
+Use one dedicated IAM user for each Convex deployment. Each policy grants only
+Function URL invocation. Terraform manages the production and development users.
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
+    {
+      "Sid": "DenyInvokeOutsideConvexRanges",
+      "Effect": "Deny",
+      "Action": [
+        "lambda:InvokeFunctionUrl",
+        "lambda:InvokeFunction"
+      ],
+      "Resource": "arn:aws:lambda:us-east-1:319777330480:function:ezaudit-lighthouse-worker",
+      "Condition": {
+        "NotIpAddress": {
+          "aws:SourceIp": [
+            "216.235.222.0/24",
+            "2600:1f18:77e:2300::/56",
+            "2600:1f10:4a09:7c00::/56"
+          ]
+        },
+        "Bool": {
+          "aws:PrincipalIsAWSService": "false"
+        }
+      }
+    },
     {
       "Sid": "InvokeOnlyThisFunctionUrl",
       "Effect": "Allow",
@@ -65,8 +92,13 @@ Use a dedicated IAM user for the Convex caller. The policy grants only Function 
 }
 ```
 
-Set the Function URL resource policy for the same account and exact caller ARN. Add
-these two statements to the function resource policy:
+The Deny limits caller requests to Convex's shared ranges: `216.235.222.0/24`,
+`2600:1f18:77e:2300::/56`, and `2600:1f10:4a09:7c00::/56`. These ranges do not
+identify one Convex deployment. If Convex changes its ranges, calls from new
+addresses will fail until this policy is updated.
+
+Terraform adds these two statements to the Function URL resource policy for the
+production caller. It adds matching statements for the development caller.
 
 ```json
 {
@@ -94,12 +126,13 @@ these two statements to the function resource policy:
 
 AWS requires both actions for `AWS_IAM` Function URLs. `lambda:InvokedViaFunctionUrl`
 limits the second action to URL calls. The handler also compares the request's IAM
-user ARN with `LIGHTHOUSE_ALLOWED_CALLER_ARN`.
+user ARN with `LIGHTHOUSE_ALLOWED_CALLER_ARN`. Terraform creates a matching policy
+for the development user and Function URL.
 
-## ECR to Lambda deployment
+## ECR image release
 
-Run these commands from this directory. Set `AWS_ACCOUNT_ID` and `IMAGE_TAG` first.
-Use an immutable tag for each release. The image repository must be in `us-east-1`.
+Build and push the arm64 image. Terraform creates the immutable ECR repository.
+Run these commands from this directory. Use a new tag for each release.
 
 ```sh
 export AWS_REGION=us-east-1
@@ -107,48 +140,43 @@ export AWS_ACCOUNT_ID=319777330480
 export IMAGE_TAG=$(git rev-parse --short HEAD)
 export REPOSITORY=ezaudit-lighthouse-worker
 export IMAGE_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPOSITORY:$IMAGE_TAG"
-aws ecr create-repository --region "$AWS_REGION" --repository-name "$REPOSITORY" --image-tag-mutability IMMUTABLE
 aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
 docker build --platform linux/arm64 -t "$IMAGE_URI" .
 docker push "$IMAGE_URI"
 ```
 
-Create the Lambda execution role before the first deployment. Its trust policy must
-allow `lambda.amazonaws.com` to assume the role. Attach `AWSLambdaBasicExecutionRole`
-for CloudWatch Logs. The function needs no AWS API permission at runtime.
+## Terraform deployment
 
-`provision.sh` runs these steps and the later ones. Set `IMAGE_URI` to the pushed image
-URI and run `bash provision.sh`. It creates the execution role, the caller user, the
-caller policy, the function, the concurrency setting, and the Function URL. A second
-run changes nothing. It never creates access keys.
+The Terraform stack imports the existing production worker. It creates the development
+worker, separate caller users, the private Lambda subnet, and the proxy instance. Build
+and push the new image before the first apply. The image must include `auditId` request
+and response handling.
 
-Create the function with the pushed image and the required settings:
+Run Terraform from the infrastructure repo:
 
 ```sh
-aws lambda create-function --region us-east-1 --function-name ezaudit-lighthouse-worker \
-  --package-type Image --code ImageUri="$IMAGE_URI" --architectures arm64 \
-  --role arn:aws:iam::319777330480:role/ezaudit-lighthouse-worker \
-  --memory-size 2048 --timeout 120 \
-  --environment 'Variables={LIGHTHOUSE_AUTH_MODE=iam,LIGHTHOUSE_ALLOWED_CALLER_ARN=arn:aws:iam::319777330480:user/ezaudit-convex-lighthouse}'
-aws lambda put-function-concurrency --region us-east-1 \
-  --function-name ezaudit-lighthouse-worker --reserved-concurrent-executions 4
-aws lambda create-function-url-config --region us-east-1 \
-  --function-name ezaudit-lighthouse-worker --auth-type AWS_IAM
+cd ../../../infrastructure/aws/ezaudit
+./tf.sh plan -var="lighthouse_image_uri=$IMAGE_URI"
+./tf.sh apply -var="lighthouse_image_uri=$IMAGE_URI"
 ```
 
-Add the caller identity policy and Function URL resource policy above. Save the
-returned Function URL. Add its value and caller credentials to the correct Convex
-deployment. Invoke a test audit and confirm one successful Lambda log entry. Keep the
-previous image URI for rollback.
+The import blocks adopt the production ECR repository, role, caller user, function,
+Function URL, and permissions. The apply also moves both functions into the private
+subnet and points them to Squid. The stack needs the infrastructure repo's `.env` file
+with AWS access and `CLOUDFLARE_API_TOKEN`.
 
-For later releases, push the new immutable image and update the function:
+Terraform creates IAM users but no access keys. Create one key pair per user and store
+each pair in its matching `backend/.env.local` or `backend/.env.production` file. Run
+the matching Convex environment sync command from the ezaudit repo. Read the URLs with:
 
 ```sh
-aws lambda update-function-code --region us-east-1 \
-  --function-name ezaudit-lighthouse-worker --image-uri "$IMAGE_URI"
-aws lambda wait function-updated-v2 --region us-east-1 \
-  --function-name ezaudit-lighthouse-worker
+./tf.sh output -raw lighthouse_worker_dev_url
+./tf.sh output -raw lighthouse_worker_url
 ```
+
+Deploy the updated Lambda image before the Convex action. The new action requires the
+worker to echo the submitted `auditId`. Keep the previous immutable image for rollback.
+Do not use `provision.sh` for Terraform-managed resources.
 
 ## IAM denial proof
 
@@ -187,20 +215,26 @@ outside the policy was not run.
 
 ## Credential rotation
 
-Create a second access key for the dedicated IAM user. Keep the first key active.
-Set the new access key ID and secret in the Convex deployment. Run a test audit.
+Create a second access key for one environment's caller user. Keep the first key active.
+Set the new access key ID and secret in that Convex deployment. Run a test audit.
 After success, deactivate and delete the old key. Do not store either secret in git,
 an image, a command history, or Lambda environment variables. Rotate at least every
 90 days and after suspected exposure.
 
 ## Rollback
 
-Set `IMAGE_TAG` to the last known good tag and update the function code with that
-image URI. Wait for `function-updated-v2`, then run a test audit. If the failure comes
-from IAM or environment configuration, restore the previous policy or Convex values.
-Do not roll back the Function URL auth type from `AWS_IAM`.
+Set `lighthouse_image_uri` to the last known good image URI. Run Terraform plan and
+apply. Then run a test audit. If the failure comes from IAM or environment settings,
+restore the previous policy or Convex values. Keep Function URL auth at `AWS_IAM`.
 
 ## Cost estimate
+
+The Squid proxy is an always-on `t4g.micro` EC2 instance with an 8 GB `gp3` volume.
+At `$0.0084` per hour, the instance costs about `$6.05` for 30 days. The volume and
+internet data transfer cost extra. AWS charges `$0.005` per hour for the public IPv4
+address, or `$3.60` for 30 days. The total starts near `$9.65` per 30 days. See [VPC
+pricing](https://aws.amazon.com/vpc/pricing/) and [EC2 On-Demand
+pricing](https://aws.amazon.com/ec2/pricing/on-demand/). This path has no NAT gateway.
 
 At 100 audits per month and the measured 11.9-second deployment duration, Lambda uses
 about 2,380 GB-seconds: `100 × 2 GB × 11.9 seconds`. At the published `us-east-1` rate
@@ -226,17 +260,23 @@ reproduced on Lambda and in the local arm64 container.
 The handler fails the run after 100 seconds with a logged reason. A hung Chrome
 otherwise dies at the function timeout with no error in the log.
 
+Keep Chromium's `--no-sandbox` flag while the current Lambda runtime lacks sandbox
+support. Remove the flag only after the deployed runtime supports the Chromium sandbox.
+
 ## Egress limits
 
-The proxy checks each HTTP request and HTTPS tunnel, rejects non-public DNS answers,
-and connects to one checked IP. It allows only HTTP port 80 and HTTPS port 443.
-Redirects and page resources pass through Chromium's proxy configuration. Chromium
-disables QUIC and non-proxied WebRTC UDP.
+The Lambda security group permits TCP port 3128 only to the proxy security group.
+Squid accepts port 3128 only from the Lambda security group. The proxy security group
+permits outbound TCP ports 80 and 443 only. Squid allows those ports and blocks
+private and reserved IPv4 destination ranges.
 
-These controls are application-level checks. The Lambda has public internet access.
-They do not provide network isolation or block every possible direct browser network
-path. DNS prefetch, browser changes, runtime paths, and other code can bypass these
-proxy checks. No VPC or network-level egress control is configured.
+The Lambda subnet has no internet route. The internet gateway route belongs only to
+the proxy subnet. Redirects and page resources pass through Chromium's local proxy,
+then Squid. Chromium disables QUIC and non-proxied WebRTC UDP.
+
+Terraform sets the private subnet, Lambda security group, and proxy URL. The handler
+returns HTTP 503 in IAM mode when the proxy URL is missing. Proxy failure stops worker
+egress until the instance recovers.
 
 ## Local proof
 

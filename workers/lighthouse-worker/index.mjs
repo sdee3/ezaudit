@@ -32,7 +32,7 @@ async function validateUrl(value) {
 }
 
 function isAuthorized(event) {
-  const mode = process.env.LIGHTHOUSE_AUTH_MODE ?? "bearer"
+  const mode = process.env.LIGHTHOUSE_AUTH_MODE ?? "deny"
   if (mode === "iam") {
     const iam = event.requestContext?.authorizer?.iam
     const allowedArn = process.env.LIGHTHOUSE_ALLOWED_CALLER_ARN
@@ -48,14 +48,17 @@ function isAuthorized(event) {
 
 export async function handler(event) {
   const method = event.requestContext?.http?.method
-  if (method && method !== "POST") return json(405, { error: "method not allowed" })
+  if (method !== "POST") return json(405, { error: "method not allowed" })
 
-  const authMode = process.env.LIGHTHOUSE_AUTH_MODE ?? "bearer"
+  const authMode = process.env.LIGHTHOUSE_AUTH_MODE ?? "deny"
   if (!["bearer", "iam"].includes(authMode)) {
     return json(503, { error: "worker authentication mode is invalid" })
   }
   if (authMode === "iam" && !process.env.LIGHTHOUSE_ALLOWED_CALLER_ARN) {
     return json(503, { error: "allowed IAM caller ARN is not configured" })
+  }
+  if (authMode === "iam" && !process.env.LIGHTHOUSE_EGRESS_PROXY_URL) {
+    return json(503, { error: "egress proxy is not configured" })
   }
   if (authMode === "bearer" && !process.env.LIGHTHOUSE_WORKER_SECRET) {
     return json(503, { error: "worker secret is not configured" })
@@ -71,8 +74,8 @@ export async function handler(event) {
   } catch {
     return json(400, { error: "body must be valid JSON" })
   }
-  if (!body || typeof body !== "object" || typeof body.url !== "string") {
-    return json(400, { error: "url is required" })
+  if (!body || typeof body !== "object" || typeof body.auditId !== "string" || !body.auditId || typeof body.url !== "string") {
+    return json(400, { error: "auditId and url are required" })
   }
 
   let url
@@ -179,6 +182,7 @@ export async function handler(event) {
       }
     }
     return json(200, {
+      auditId: body.auditId,
       requestId: event.requestContext?.requestId,
       report: {
         finalUrl: result.lhr.finalDisplayedUrl || result.lhr.finalUrl || url,
