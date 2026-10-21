@@ -7,10 +7,10 @@
 ## Decision
 
 Run Lighthouse in an AWS Lambda arm64 container image with 2048 MB and a 120 second
-timeout. Expose an `AWS_IAM` Function URL and keep the function outside a VPC.
-`auditPipeline.run` calls a Node action that signs the request with SigV4. The action
-reads a dedicated IAM access key from Convex environment variables. The worker returns
-the four category scores the UI already stores.
+timeout. Expose an `AWS_IAM` Function URL. Place the function in a private VPC subnet
+with access only to an in-VPC Squid proxy. `auditPipeline.run` calls a Node action that
+signs the request with SigV4. The action reads a dedicated IAM access key from Convex
+environment variables. The worker returns the four category scores the UI already stores.
 
 ## Why
 
@@ -35,5 +35,15 @@ Evidence and sources: [d1-lighthouse-host](../research/d1-lighthouse-host.md).
   package for that binary.
 - Restrict the IAM principal to this Function URL. Rotate its credentials.
 - Reserve concurrency at four audits.
-- The user selected no VPC or network-level egress controls. The proxy is an
-  application guardrail, not network isolation.
+- Terraform manages the Lambda, Function URLs, IAM policies, private subnet, and proxy.
+- The proxy allows outbound TCP ports 80 and 443. The Lambda security group allows only
+  traffic to the proxy on TCP port 3128. This path has no NAT gateway.
+- The proxy adds an always-on instance and public IPv4 cost. The worker runbook records
+  the estimate and cost limits.
+
+## Update 2026-10-21
+
+The original choice to run outside a VPC changed after the threat review. The private
+subnet and proxy limit worker egress if Chromium or page content compromises the process.
+This adds a standing cost and a single proxy failure point. Terraform declares these
+resources, but no apply occurred during this change.

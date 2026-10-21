@@ -27,11 +27,11 @@ export function allowsSeededScores(
 }
 
 export const runAudit = internalAction({
-  args: { domain: v.string() },
-  handler: async (_ctx, { domain }) => {
+  args: { auditId: v.id("audits"), domain: v.string() },
+  handler: async (_ctx, { auditId, domain }) => {
     const workerUrl = process.env.LIGHTHOUSE_WORKER_URL
     if (!workerUrl) {
-      if (allowsSeededScores()) return { scores: seededScores(domain), findings: [] }
+      if (allowsSeededScores()) return { auditId, scores: seededScores(domain), findings: [] }
       throw new Error("LIGHTHOUSE_WORKER_URL is not configured")
     }
 
@@ -52,7 +52,7 @@ export const runAudit = internalAction({
       throw new Error("Lighthouse worker URL must be an HTTPS Function URL in us-east-1")
     }
 
-    const body = JSON.stringify({ url: toWorkerUrl(domain) })
+    const body = JSON.stringify({ auditId, url: toWorkerUrl(domain) })
     const signer = new SignatureV4({
       credentials: {
         accessKeyId,
@@ -100,6 +100,6 @@ export const runAudit = internalAction({
     } catch {
       throw new Error("Lighthouse worker returned invalid JSON")
     }
-    return parseWorkerResponse(result)
+    return parseWorkerResponse(result, auditId)
   },
 })

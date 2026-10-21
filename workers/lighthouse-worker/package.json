@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "proof": "node proof.mjs",
-    "test": "node --test address-filter.test.mjs"
+    "test": "node --test address-filter.test.mjs egress-proxy.test.mjs handler.test.mjs provision-policy.test.mjs"
   },
   "dependencies": {
     "@sparticuz/chromium-min": "153.0.0",

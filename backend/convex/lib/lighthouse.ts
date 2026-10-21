@@ -15,6 +15,7 @@ export type Finding = {
 }
 
 export type RunAuditResult = {
+  auditId: string
   scores: CategoryScores
   findings: Finding[]
   report?: {
@@ -96,9 +97,12 @@ function isReport(value: unknown): value is NonNullable<RunAuditResult["report"]
       typeof check.displayValue === "string" && typeof check.weight === "number")
 }
 
-export function parseWorkerResponse(body: unknown): RunAuditResult {
+export function parseWorkerResponse(body: unknown, auditId: string): RunAuditResult {
   if (!isRecord(body)) {
     throw new Error("Lighthouse worker returned a non-object body")
+  }
+  if (body.auditId !== auditId) {
+    throw new Error("Lighthouse worker response audit ID does not match")
   }
   const rawScores = body.scores ?? body
   if (
@@ -117,6 +121,7 @@ export function parseWorkerResponse(body: unknown): RunAuditResult {
     throw new Error("Lighthouse worker response has malformed report context")
   }
   return {
+    auditId,
     scores: {
       performance: { score: rawScores.performance.score },
       accessibility: { score: rawScores.accessibility.score },

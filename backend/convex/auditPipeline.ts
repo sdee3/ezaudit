@@ -40,7 +40,7 @@ async function performAttempt(
   try {
     const { scores, findings, report, workerRequestId } = await ctx.runAction(
       internal.lighthouseWorker.runAudit,
-      { domain: audit.domain },
+      { auditId, domain: audit.domain },
     )
     await ctx.runMutation(internal.auditPipeline.markDone, {
       auditId,

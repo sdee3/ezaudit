@@ -35,6 +35,21 @@ flowchart LR
   and mints a short-lived sign-in token that the satellite exchanges for a Clerk session.
 - **EZ Audit Convex** validates the same Clerk JWT (`applicationID: "convex"`).
 
+### JWT claims for audit submissions
+
+The shared Clerk `convex` JWT template must include these claims. The submit mutation
+requires the signed-in user's verified email to match the submitted email.
+
+```json
+{
+  "email": "{{user.primary_email_address}}",
+  "email_verified": "{{user.email_verified}}"
+}
+```
+
+Add these claims to the existing template in the Clerk Dashboard. Without them,
+`audits.submit` rejects every request. See [Clerk JWT templates](https://clerk.com/docs/guides/sessions/jwt-templates).
+
 ## Frontend integration
 
 ### Package choice under the React 18 pin
