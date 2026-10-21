@@ -180,13 +180,15 @@ export const remove = mutation({
   },
 })
 
-/** Owner-only retry eligibility after all automatic attempts fail. */
+/** Owner-only restart eligibility for completed audits or exhausted failures. */
 export const retryEligibility = query({
   args: { id: v.id("audits") },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx)
     const audit = await ctx.db.get(args.id)
-    if (audit === null || audit.userId !== userId || audit.status !== "error") return false
+    if (audit === null || audit.userId !== userId) return false
+    if (audit.status === "done") return true
+    if (audit.status !== "error") return false
     const jobs = await ctx.db
       .query("auditJobs")
       .withIndex("by_auditId", (q) => q.eq("auditId", args.id))
@@ -203,17 +205,17 @@ export const retry = mutation({
     const userId = await requireUserId(ctx)
     const audit = await ctx.db.get(args.id)
     if (audit === null || audit.userId !== userId) throw new Error("Not found")
-    if (audit.status !== "error") throw new Error("Audit is not eligible for retry")
-
     const cycle = audit.retryCycle ?? 0
-    const jobs = await ctx.db
-      .query("auditJobs")
-      .withIndex("by_auditId", (q) => q.eq("auditId", args.id))
-      .collect()
-    if (jobs.filter((job) => (job.retryCycle ?? 0) === cycle).length < 3) {
-      throw new Error("Audit is not eligible for retry")
+    if (audit.status !== "done") {
+      if (audit.status !== "error") throw new Error("Audit is not eligible for retry")
+      const jobs = await ctx.db
+        .query("auditJobs")
+        .withIndex("by_auditId", (q) => q.eq("auditId", args.id))
+        .collect()
+      if (jobs.filter((job) => (job.retryCycle ?? 0) === cycle).length < 3) {
+        throw new Error("Audit is not eligible for retry")
+      }
     }
-
     await ctx.db.patch(args.id, {
       retryCycle: cycle + 1,
       status: "queued",

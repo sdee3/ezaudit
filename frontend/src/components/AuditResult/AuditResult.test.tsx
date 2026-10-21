@@ -37,17 +37,17 @@ function renderAudit(user: { id: string } | null, retryEligible: boolean) {
 }
 
 describe('audit owner actions', () => {
-  it('shows retry only when the owner has a final failed audit', () => {
+  it('shows restart only when the owner can restart an audit', () => {
     const html = renderAudit({ id: 'owner_1' }, true)
-    expect(html).toContain('Retry audit')
+    expect(html).toContain('Restart audit')
     expect(html).toContain('Delete audit')
 
-    expect(renderAudit({ id: 'owner_1' }, false)).not.toContain('Retry audit')
+    expect(renderAudit({ id: 'owner_1' }, false)).not.toContain('Restart audit')
   })
 
   it('hides owner actions from a shared report visitor', () => {
     const html = renderAudit(null, true)
-    expect(html).not.toContain('Retry audit')
+    expect(html).not.toContain('Restart audit')
     expect(html).not.toContain('Delete audit')
   })
 

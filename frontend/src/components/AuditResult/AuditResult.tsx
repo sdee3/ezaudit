@@ -15,6 +15,10 @@ import {
   Heading,
   Link,
   Progress,
+  SimpleGrid,
+  Stat,
+  StatLabel,
+  StatNumber,
   Switch,
   Text,
   useDisclosure,
@@ -49,7 +53,9 @@ export const AuditResult = ({
   const { isPrinting, setIsPrinting } = useContext(PrintContext)
   const { user } = useContext(AuthContext)
   const { isOpen, onOpen, onClose } = useDisclosure()
+  const restartDialog = useDisclosure()
   const cancelRef = useRef<HTMLButtonElement>(null)
+  const restartCancelRef = useRef<HTMLButtonElement>(null)
 
   // Same rule as the backend (audits.get, audits.setVisibility): owner means userId match.
   const isUserOwnerOfAudit = useMemo(
@@ -136,8 +142,8 @@ export const AuditResult = ({
             <FiFileText /> <Text ml={2}>Export to PDF</Text>
           </Button>
           {isUserOwnerOfAudit && retryEligible && (
-            <Button onClick={handleRetry} colorScheme="blue" width="fit-content">
-              Retry audit
+            <Button onClick={restartDialog.onOpen} colorScheme="blue" width="fit-content">
+              Restart audit
             </Button>
           )}
           {isUserOwnerOfAudit && (
@@ -169,6 +175,35 @@ export const AuditResult = ({
               </Button>
               <Button colorScheme="red" onClick={handleDelete} ml={3}>
                 Delete audit
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+      <AlertDialog
+        isOpen={restartDialog.isOpen}
+        leastDestructiveRef={restartCancelRef}
+        onClose={restartDialog.onClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader>Restart this audit?</AlertDialogHeader>
+            <AlertDialogBody>
+              This starts a new audit and replaces the current report.
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={restartCancelRef} onClick={restartDialog.onClose}>
+                Cancel
+              </Button>
+              <Button
+                colorScheme="blue"
+                onClick={() => {
+                  restartDialog.onClose()
+                  handleRetry()
+                }}
+                ml={3}
+              >
+                Restart audit
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -228,6 +263,39 @@ export const AuditResult = ({
           )
         })}
       </Box>
+      {audit.report && (
+        <Box mb={8} p={{ base: 4, md: 6 }} borderRadius="xl" bg="gray.50" borderWidth="1px" borderColor="gray.200">
+          <Flex justifyContent="space-between" alignItems="baseline" gap={4} wrap="wrap" mb={4}>
+            <Heading as="h2" size="lg">Page experience</Heading>
+            <Text fontSize="sm" color="gray.600">
+              {audit.report.formFactor} audit · Lighthouse {audit.report.lighthouseVersion}
+            </Text>
+          </Flex>
+          <SimpleGrid columns={{ base: 2, md: 5 }} spacing={3}>
+            {audit.report.metrics.map((metric, index) => (
+              <Stat key={metric.id} p={3} bg={['blue.50', 'purple.50', 'teal.50', 'orange.50', 'pink.50'][index % 5]} borderRadius="lg">
+                <StatLabel fontSize="xs">{metric.title}</StatLabel>
+                <StatNumber fontSize="xl">{metric.displayValue || `${metric.value}${metric.unit}`}</StatNumber>
+              </Stat>
+            ))}
+          </SimpleGrid>
+          <Flex mt={4} gap={3} wrap="wrap">
+            {(['performance', 'accessibility', 'bestPractices', 'seo'] as const).map((category) => {
+              const checks = audit.report!.checks.filter((check) => check.category === category)
+              const passed = checks.filter((check) => check.score >= 0.9).length
+              const labels = { performance: 'Performance', accessibility: 'Accessibility', bestPractices: 'Best practices', seo: 'SEO' }
+              return (
+                <Text key={category} px={3} py={1} borderRadius="full" bg="white" borderWidth="1px" fontSize="sm">
+                  {labels[category]} · {passed}/{checks.length} checks passed
+                </Text>
+              )
+            })}
+          </Flex>
+          <Text mt={3} fontSize="xs" color="gray.600">
+            Audited {new Date(audit.report.fetchedAt).toLocaleString()} · {audit.report.checks.length} checks · {audit.report.finalUrl}
+          </Text>
+        </Box>
+      )}
       {audit.findings !== undefined && (
         <Box mb={8}>
           <Heading as="h2" size="lg" mb={2}>
