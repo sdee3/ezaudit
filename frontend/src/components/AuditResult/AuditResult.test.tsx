@@ -43,6 +43,8 @@ describe('audit owner actions', () => {
 
   it('shows restart only when the owner can restart an audit', () => {
     const html = renderAudit({ id: 'owner_1' }, true)
+    expect(html).toContain('aria-label="Audit visibility and sharing"')
+    expect(html).toContain('aria-label="Audit actions"')
     expect(html).toContain('Restart audit')
     expect(html).toContain('Delete audit')
 

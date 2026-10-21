@@ -102,10 +102,31 @@ export const AuditResult = ({
 
   return (
     <>
-      <Flex mb={8} gap={4} justifyContent="space-between">
+      <Flex mb={8} gap={4} alignItems="center" justifyContent="space-between" flexWrap="wrap">
         <Heading>
           {isUserOwnerOfAudit ? 'Your Audit Result' : 'Audit Result'}
         </Heading>
+        {isUserOwnerOfAudit && (
+          <Flex role="group" aria-label="Audit management actions" flexWrap="wrap" gap={3}>
+            {retryEligible && (
+              <Button
+                ref={restartButtonRef}
+                onClick={() => {
+                  setIsRestartHighlighted(false)
+                  restartDialog.onOpen()
+                }}
+                colorScheme={isRestartHighlighted ? 'orange' : 'blue'}
+                boxShadow={isRestartHighlighted ? '0 0 0 4px var(--chakra-colors-orange-200)' : undefined}
+                width="fit-content"
+              >
+                Restart audit
+              </Button>
+            )}
+            <Button onClick={onOpen} colorScheme="red" variant="outline" width="fit-content">
+              Delete audit
+            </Button>
+          </Flex>
+        )}
       </Flex>
       {!isUserOwnerOfAudit && !isGuestAccess && (
         <Alert
@@ -140,8 +161,15 @@ export const AuditResult = ({
           Options
         </Heading>
         <Flex flexDirection="column" gap={4}>
-          <Flex alignItems="center" gap={4}>
-            <FormControl display="flex" width="fit-content">
+          <Flex
+            role="group"
+            aria-label="Audit visibility and sharing"
+            alignItems="center"
+            flexWrap="wrap"
+            columnGap={4}
+            rowGap={3}
+          >
+            <FormControl display="flex" alignItems="center" width="fit-content" gap={3}>
               <FormLabel htmlFor="audit-visibility-toggle" mb="0">
                 Set as Public:
               </FormLabel>
@@ -156,39 +184,23 @@ export const AuditResult = ({
             {audit.is_public && <ShareAuditURLModal />}
           </Flex>
 
-          <Button
-            onClick={handleOnPrintClick}
-            display={isPrinting ? 'none' : 'flex'}
-            variant="outline"
-            colorScheme="facebook"
-            width="fit-content"
+          <Flex
+            role="group"
+            aria-label="Audit actions"
+            alignItems="center"
+            flexWrap="wrap"
+            gap={3}
           >
-            <FiFileText /> <Text ml={2}>Export to PDF</Text>
-          </Button>
-          {isUserOwnerOfAudit && retryEligible && (
             <Button
-              ref={restartButtonRef}
-              onClick={() => {
-                setIsRestartHighlighted(false)
-                restartDialog.onOpen()
-              }}
-              colorScheme={isRestartHighlighted ? 'orange' : 'blue'}
-              boxShadow={isRestartHighlighted ? '0 0 0 4px var(--chakra-colors-orange-200)' : undefined}
-              width="fit-content"
-            >
-              Restart audit
-            </Button>
-          )}
-          {isUserOwnerOfAudit && (
-            <Button
-              onClick={onOpen}
-              colorScheme="red"
+              onClick={handleOnPrintClick}
+              display={isPrinting ? 'none' : 'flex'}
               variant="outline"
+              colorScheme="facebook"
               width="fit-content"
             >
-              Delete audit
+              <FiFileText /> <Text ml={2}>Export to PDF</Text>
             </Button>
-          )}
+          </Flex>
         </Flex>
       </Box>
       <AlertDialog
