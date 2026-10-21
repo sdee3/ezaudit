@@ -32,12 +32,6 @@ export const Footer = () => {
               Terms and Conditions
             </Text>
           </UiLink>
-          <UiLink as={Link} to={ROUTES.feedback} className="print-hidden" display={isPrinting ? 'none' : 'block'}>
-            <Text color="blue.600" fontWeight="bold" cursor="pointer">Send feedback</Text>
-          </UiLink>
-          <UiLink as={Link} to={ROUTES.childSafety} className="print-hidden" display={isPrinting ? 'none' : 'block'}>
-            <Text color="blue.600" fontWeight="bold" cursor="pointer">Child safety standards</Text>
-          </UiLink>
         </Flex>
       </Box>
     </footer>

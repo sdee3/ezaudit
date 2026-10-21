@@ -12,8 +12,6 @@ import DashboardPage from './pages/dashboard'
 import PasswordResetPage from './pages/dashboard/password-reset'
 import HomePage from './pages'
 import TermsConditions from './pages/terms-and-conditions'
-import FeedbackPage from './pages/feedback'
-import ChildSafetyPage from './pages/child-safety'
 import { ROUTES, theme } from './utils'
 
 // ChakraProvider lives in main.tsx so the session guard can use the theme.
@@ -35,8 +33,6 @@ export function App() {
                 path={ROUTES.termsAndConditions}
                 element={<TermsConditions />}
               />
-              <Route path={ROUTES.feedback} element={<FeedbackPage />} />
-              <Route path={ROUTES.childSafety} element={<ChildSafetyPage />} />
               <Route path={ROUTES.ssoCallback} element={<SsoCallback />} />
               <Route path={ROUTES.signIn} element={<SignInPage />} />
               <Route path={ROUTES.dashboard} element={<DashboardPage />} />
