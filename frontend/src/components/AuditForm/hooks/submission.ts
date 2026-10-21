@@ -9,7 +9,7 @@ export const reportHref = (auditId: unknown, isSignedIn: boolean, guestToken?: u
   if (typeof auditId !== 'string') return null
   if (isSignedIn) return `/dashboard/audits/${auditId}`
   return typeof guestToken === 'string'
-    ? `/dashboard/audits/${auditId}?guestToken=${encodeURIComponent(guestToken)}`
+    ? `/dashboard/audits/${auditId}#guestToken=${encodeURIComponent(guestToken)}`
     : null
 }
 

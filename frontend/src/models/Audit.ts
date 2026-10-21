@@ -13,6 +13,7 @@ export interface Audit {
   domain: string
   status: 'queued' | 'running' | 'done' | 'error'
   audit_result: AuditResultCategories | null
+  findings?: AuditFinding[]
   is_public: boolean
   /** ms epoch. */
   date_of_request: number
@@ -23,6 +24,15 @@ export interface Audit {
 
 /** Matches the Convex doc — the pre-Convex shape was parsed from a JSON string. */
 export type AuditResultParsed = Audit
+
+export interface AuditFinding {
+  id: string
+  category: keyof AuditResultCategories
+  title: string
+  description: string
+  score: number
+  suggestedFixes: string[]
+}
 
 export interface AuditResultCategories {
   accessibility: AuditAccessibility

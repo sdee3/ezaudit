@@ -104,8 +104,10 @@ export const AuditForm = () => {
       )}
       {reportLink && !user && (
         <Text mt={4}>
-          <Link color="blue.600" href={reportLink}>View your secure private audit report</Link>
-          <Text> This link expires after 30 days.</Text>
+          <Link color="blue.600" href={reportLink}>
+            View your secure private audit report
+          </Link>
+          <Text> Save this link. It expires 30 days after submission.</Text>
         </Text>
       )}
 

@@ -50,4 +50,42 @@ describe('audit owner actions', () => {
     expect(html).not.toContain('Retry audit')
     expect(html).not.toContain('Delete audit')
   })
+
+  it('shows Lighthouse findings and suggested fixes when present', () => {
+    const html = renderToStaticMarkup(
+      <AuthContext.Provider
+        value={{
+          user: { id: 'owner_1' } as never,
+          accessToken: null,
+          setUserData: vi.fn(),
+          clearUser: vi.fn(),
+        }}
+      >
+        <PrintContext.Provider value={{ isPrinting: false, setIsPrinting: vi.fn() }}>
+          <AuditResult
+            audit={{
+              ...audit,
+              findings: [
+                {
+                  id: 'image-alt',
+                  category: 'accessibility',
+                  title: 'Images need alt text',
+                  description: 'Add alternative text to images.',
+                  score: 0,
+                  suggestedFixes: ['Add descriptive alt text.'],
+                },
+              ],
+            }}
+            retryEligible={false}
+            handleOnSwitchChange={vi.fn()}
+            handleRetry={vi.fn()}
+            handleDelete={vi.fn()}
+          />
+        </PrintContext.Provider>
+      </AuthContext.Provider>,
+    )
+
+    expect(html).toContain('Images need alt text')
+    expect(html).toContain('Add descriptive alt text.')
+  })
 })

@@ -228,6 +228,47 @@ export const AuditResult = ({
           )
         })}
       </Box>
+      {audit.findings !== undefined && (
+        <Box mb={8}>
+          <Heading as="h2" size="lg" mb={2}>
+            Findings
+          </Heading>
+          {audit.findings.length === 0 ? (
+            <Text>No Lighthouse checks failed.</Text>
+          ) : (
+            audit.findings.map((finding) => (
+              <Box
+                key={`${finding.category}:${finding.id}`}
+                py={4}
+                borderTopWidth="1px"
+                borderColor="gray.200"
+              >
+                <Text fontSize="sm" color="gray.600" mb={1}>
+                  {{
+                    accessibility: 'Accessibility',
+                    bestPractices: 'Best practices',
+                    performance: 'Performance',
+                    seo: 'SEO',
+                  }[finding.category]}
+                </Text>
+                <Heading as="h3" size="md" mb={2}>
+                  {finding.title}
+                </Heading>
+                <Text mb={finding.suggestedFixes.length > 0 ? 3 : 0}>{finding.description}</Text>
+                {finding.suggestedFixes.length > 0 && (
+                  <Box as="ul" pl={5}>
+                    {finding.suggestedFixes.map((fix) => (
+                      <Text as="li" key={fix}>
+                        {fix}
+                      </Text>
+                    ))}
+                  </Box>
+                )}
+              </Box>
+            ))
+          )}
+        </Box>
+      )}
 
       {!isUserOwnerOfAudit && !user && (
         <ChakraAlert status="info" variant="left-accent">

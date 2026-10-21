@@ -1,7 +1,7 @@
 import { Container } from '@chakra-ui/react'
 import { useMutation, useQuery } from 'convex/react'
 import { ChangeEvent, useContext, useEffect, useMemo } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { api } from 'convex/_generated/api'
 
@@ -33,10 +33,11 @@ const BREADCRUMB_LINKS: BreadcrumbLink[] = [
 const AuditByIdOverview = () => {
   const { user } = useContext(AuthContext)
   const navigate = useNavigate()
+  const { hash } = useLocation()
   const { id: auditId = '' } = useParams()
   const [searchParams] = useSearchParams()
   const emailToken = searchParams.get('e')
-  const guestToken = searchParams.get('guestToken')
+  const guestToken = new URLSearchParams(hash.slice(1)).get('guestToken')
   const { fetchEmailDataFromUrl, parsedEmail, clearParsedEmail } = useApi()
 
   const toggleVisibility = useMutation(api.audits.setVisibility)
@@ -58,14 +59,13 @@ const AuditByIdOverview = () => {
   )
 
   const metaTitle = `EZ Audit | SEO Audit result of ${audit?.domain ?? ''}`
-  const metaDescription = `SEO Audit report of ${
-    typeof window === 'undefined' ? '' : window.location.href
-  } which indicates performance results based on key metrics, such as overall accessibility, load times, SEO.`
+  const metaDescription = `SEO audit report for ${audit?.domain ?? 'website'} with accessibility, performance, best practices, and SEO results.`
 
   const meta = useMemo<HeadMeta[]>(
     () => [
       { name: 'title', content: metaTitle },
       { name: 'description', content: metaDescription },
+      ...(guestToken ? [{ name: 'robots', content: 'noindex, nofollow' }] : []),
       { property: 'og:type', content: 'website' },
       { property: 'og:url', content: 'https://metatags.io/' },
       { property: 'og:title', content: metaTitle },
@@ -85,7 +85,7 @@ const AuditByIdOverview = () => {
           'https://metatags.io/assets/meta-tags-16a33a6a8531e519cc0936fbba0ad904e52d35f34a46c97a2c9f6f7dd7d336f2.png',
       },
     ],
-    [metaDescription, metaTitle]
+    [guestToken, metaDescription, metaTitle]
   )
 
   const handleOnSwitchChange = async (_e: ChangeEvent<HTMLInputElement>) => {

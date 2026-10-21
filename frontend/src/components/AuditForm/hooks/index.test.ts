@@ -15,7 +15,7 @@ describe('submitAuditForm', () => {
     expect(reportHref('audit-123', true)).toBe('/dashboard/audits/audit-123')
     expect(reportHref('audit-123', false)).toBeNull()
     expect(reportHref('audit-123', false, 'secret token')).toBe(
-      '/dashboard/audits/audit-123?guestToken=secret%20token'
+      '/dashboard/audits/audit-123#guestToken=secret%20token'
     )
   })
 
@@ -25,7 +25,7 @@ describe('submitAuditForm', () => {
     const result = await submitAuditForm(mutation, values, setValue, vi.fn(), vi.fn())
 
     expect(reportHref(result.auditId, false, result.guestToken)).toBe(
-      '/dashboard/audits/audit-123?guestToken=guest-secret'
+      '/dashboard/audits/audit-123#guestToken=guest-secret'
     )
   })
 
