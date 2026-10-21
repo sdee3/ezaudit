@@ -43,6 +43,16 @@ interface Props {
   isGuestAccess?: boolean
 }
 
+const renderFindingText = (value: string) =>
+  value.split(/(\[[^\]]+\]\(https?:\/\/[^)\s]+\))/g).map((part, index) => {
+    const link = part.match(/^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)$/)
+    return link ? (
+      <Link key={index} href={link[2]} target="_blank" rel="noopener noreferrer" color="blue.600">
+        {link[1]}
+      </Link>
+    ) : part
+  })
+
 export const AuditResult = ({
   audit,
   handleOnSwitchChange,
@@ -332,12 +342,12 @@ export const AuditResult = ({
                 <Heading as="h3" size="md" mb={2}>
                   {finding.title}
                 </Heading>
-                <Text mb={finding.suggestedFixes.length > 0 ? 3 : 0}>{finding.description}</Text>
+                <Text mb={finding.suggestedFixes.length > 0 ? 3 : 0}>{renderFindingText(finding.description)}</Text>
                 {finding.suggestedFixes.length > 0 && (
                   <Box as="ul" pl={5}>
                     {finding.suggestedFixes.map((fix) => (
                       <Text as="li" key={fix}>
-                        {fix}
+                        {renderFindingText(fix)}
                       </Text>
                     ))}
                   </Box>
