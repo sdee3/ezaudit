@@ -421,7 +421,7 @@ test("pipeline persists worker findings and preserves all category scores", asyn
   vi.stubEnv("LIGHTHOUSE_WORKER_URL", "https://worker.lambda-url.us-east-1.on.aws/run")
   vi.stubEnv("LIGHTHOUSE_AWS_ACCESS_KEY_ID", "test-access-key")
   vi.stubEnv("LIGHTHOUSE_AWS_SECRET_ACCESS_KEY", "test-secret-key")
-  const workerFetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+  const workerFetch = vi.fn(async (_input: URL, init?: RequestInit) => {
     const request = JSON.parse(String(init?.body)) as { auditId: string }
     return new Response(JSON.stringify({
       auditId: request.auditId,
