@@ -29,7 +29,7 @@ describe('submitAuditForm', () => {
     )
   })
 
-  it('clears fields and returns the report id after a successful mutation', async () => {
+  it('clears the domain and returns the report id after a successful mutation', async () => {
     const setValue = createSetValue()
     const mutation = vi.fn().mockResolvedValue({ auditId: 'audit-123' })
 
@@ -43,8 +43,8 @@ describe('submitAuditForm', () => {
 
     expect(mutation).toHaveBeenCalledWith(values)
     expect(result).toMatchObject({ status: 202, auditId: 'audit-123' })
-    expect(setValue).toHaveBeenNthCalledWith(1, 'domain', '')
-    expect(setValue).toHaveBeenNthCalledWith(2, 'email', '')
+    expect(setValue).toHaveBeenCalledOnce()
+    expect(setValue).toHaveBeenCalledWith('domain', '')
   })
 
   it('keeps fields after a failed mutation', async () => {

@@ -86,10 +86,19 @@ const AuditsIndex = () => {
                   cursor="pointer"
                   role="link"
                   tabIndex={0}
-                  onClick={() => navigate(ROUTES.audit(audit._id))}
+                  onClick={() => {
+                    const openExistingAudit = window.confirm(
+                      `Open the existing audit for ${audit.domain}? The restart option will be highlighted when available.`
+                    )
+
+                    if (openExistingAudit) {
+                      navigate(`${ROUTES.audit(audit._id)}?highlightRestart=1`)
+                    }
+                  }}
                   onKeyDown={event => {
                     if (event.key === 'Enter') {
-                      navigate(ROUTES.audit(audit._id))
+                      event.preventDefault()
+                      event.currentTarget.click()
                     }
                   }}
                 >

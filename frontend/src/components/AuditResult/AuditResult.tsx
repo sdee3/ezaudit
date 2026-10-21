@@ -24,7 +24,7 @@ import {
   Text,
   useDisclosure,
 } from '@chakra-ui/react'
-import { ChangeEvent, useContext, useMemo, useRef } from 'react'
+import { ChangeEvent, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { FiFileText } from 'react-icons/fi'
 
 import { AuditResultParsed } from '../../models'
@@ -38,6 +38,7 @@ interface Props {
   audit: AuditResultParsed
   handleOnSwitchChange: (e: ChangeEvent<HTMLInputElement>) => void
   retryEligible: boolean
+  highlightRestart?: boolean
   handleRetry: () => void
   handleDelete: () => void
   isGuestAccess?: boolean
@@ -57,6 +58,7 @@ export const AuditResult = ({
   audit,
   handleOnSwitchChange,
   retryEligible,
+  highlightRestart = false,
   handleRetry,
   handleDelete,
   isGuestAccess = false,
@@ -67,6 +69,14 @@ export const AuditResult = ({
   const restartDialog = useDisclosure()
   const cancelRef = useRef<HTMLButtonElement>(null)
   const restartCancelRef = useRef<HTMLButtonElement>(null)
+  const restartButtonRef = useRef<HTMLButtonElement>(null)
+  const [isRestartHighlighted, setIsRestartHighlighted] = useState(highlightRestart)
+
+  useEffect(() => {
+    if (!isRestartHighlighted) return
+    restartButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    restartButtonRef.current?.focus()
+  }, [isRestartHighlighted, retryEligible])
 
   // Same rule as the backend (audits.get, audits.setVisibility): owner means userId match.
   const isUserOwnerOfAudit = useMemo(
@@ -153,7 +163,16 @@ export const AuditResult = ({
             <FiFileText /> <Text ml={2}>Export to PDF</Text>
           </Button>
           {isUserOwnerOfAudit && retryEligible && (
-            <Button onClick={restartDialog.onOpen} colorScheme="blue" width="fit-content">
+            <Button
+              ref={restartButtonRef}
+              onClick={() => {
+                setIsRestartHighlighted(false)
+                restartDialog.onOpen()
+              }}
+              colorScheme={isRestartHighlighted ? 'orange' : 'blue'}
+              boxShadow={isRestartHighlighted ? '0 0 0 4px var(--chakra-colors-orange-200)' : undefined}
+              width="fit-content"
+            >
               Restart audit
             </Button>
           )}

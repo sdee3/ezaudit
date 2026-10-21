@@ -37,6 +37,7 @@ const AuditByIdOverview = () => {
   const { id: auditId = '' } = useParams()
   const [searchParams] = useSearchParams()
   const emailToken = searchParams.get('e')
+  const highlightRestart = searchParams.get('highlightRestart') === '1'
   const guestToken = new URLSearchParams(hash.slice(1)).get('guestToken')
   const { fetchEmailDataFromUrl, parsedEmail, clearParsedEmail } = useApi()
 
@@ -137,6 +138,7 @@ const AuditByIdOverview = () => {
             isGuestAccess={!!guestToken && !user}
             handleOnSwitchChange={handleOnSwitchChange}
             retryEligible={retryEligible === true}
+            highlightRestart={highlightRestart}
             handleRetry={() => retryAudit({ id: audit._id })}
             handleDelete={handleDelete}
           />
