@@ -48,6 +48,11 @@ aws s3 sync "${DIST_DIR}" "s3://${BUCKET}" \
   --delete \
   --region "${REGION}" \
   --exclude "index.html" \
+  --exclude "sw.js" \
+  --exclude "registerSW.js" \
+  --exclude "workbox-*.js" \
+  --exclude "manifest.webmanifest" \
+  --exclude "static/manifest/manifest.json" \
   --cache-control "public,max-age=31536000,immutable"
 
 echo ""
@@ -56,6 +61,23 @@ aws s3 cp "${DIST_DIR}/index.html" "s3://${BUCKET}/index.html" \
   --region "${REGION}" \
   --content-type "text/html" \
   --cache-control "no-cache,no-store,must-revalidate"
+
+echo ""
+echo "=== Uploading PWA files (revalidate on each visit) ==="
+for pwa_file in sw.js registerSW.js manifest.webmanifest workbox-*.js; do
+  if [[ -f "${DIST_DIR}/${pwa_file}" ]]; then
+    aws s3 cp "${DIST_DIR}/${pwa_file}" "s3://${BUCKET}/${pwa_file}" \
+      --region "${REGION}" \
+      --cache-control "no-cache,no-store,must-revalidate"
+  fi
+done
+
+if [[ -f "${DIST_DIR}/static/manifest/manifest.json" ]]; then
+  aws s3 cp "${DIST_DIR}/static/manifest/manifest.json" \
+    "s3://${BUCKET}/static/manifest/manifest.json" \
+    --region "${REGION}" \
+    --cache-control "no-cache,no-store,must-revalidate"
+fi
 
 echo ""
 echo "=== Invalidating the distribution ==="
