@@ -70,19 +70,23 @@ export const AuditForm = () => {
               })}
             />
           </Flex>
-          <Flex gap={2}>
-            <FormLabel htmlFor="email" mb="0" alignSelf="center">Email address</FormLabel>
-            <InputField
-              id="email"
-              placeholder="Enter your e-mail"
-              variant="flushed"
-              {...register('email', {
-                required: true,
-                pattern: EMAIL_REGEX_PATTERN,
-              })}
-            />
+          <Flex gap={2} align="flex-end">
+            {!user && (
+              <FormControl flex="1" minW={0}>
+                <FormLabel htmlFor="email">Email address</FormLabel>
+                <InputField
+                  id="email"
+                  placeholder="Enter your e-mail"
+                  variant="flushed"
+                  {...register('email', {
+                    required: true,
+                    pattern: EMAIL_REGEX_PATTERN,
+                  })}
+                />
+              </FormControl>
+            )}
             <Button
-
+              flexShrink={0}
               isLoading={isLoading}
               type="submit"
               variant="outline"
