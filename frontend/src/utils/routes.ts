@@ -9,6 +9,8 @@ export const ROUTES = {
   audit: (auditId: string) => `/dashboard/audits/${auditId}`,
   passwordReset: '/dashboard/password-reset',
   termsAndConditions: '/terms-and-conditions',
+  feedback: '/feedback',
+  childSafety: '/child-safety',
 }
 
 export const getCookieFromReq = (req: IncomingMessage, cookieKey: string) => {
