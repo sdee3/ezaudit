@@ -38,7 +38,7 @@ async function performAttempt(
   const attempt = await ctx.runMutation(internal.auditPipeline.markRunning, { auditId })
 
   try {
-    const { scores, findings, workerRequestId } = await ctx.runAction(
+    const { scores, findings, report, workerRequestId } = await ctx.runAction(
       internal.lighthouseWorker.runAudit,
       { domain: audit.domain },
     )
@@ -48,6 +48,7 @@ async function performAttempt(
       retryCycle: audit.retryCycle ?? 0,
       audit_result: scores,
       findings,
+      report,
       workerRequestId,
     })
     // Never throws; a Resend failure must not fail the audit.
@@ -165,6 +166,14 @@ audit_result: v.object({
       seo: v.object({ score: v.number() }),
     }),
     findings: v.array(auditFindingValidator),
+    report: v.optional(v.object({
+      finalUrl: v.string(), fetchedAt: v.string(), lighthouseVersion: v.string(), formFactor: v.string(),
+      metrics: v.array(v.object({ id: v.string(), title: v.string(), value: v.number(), unit: v.string(), displayValue: v.string() })),
+      checks: v.array(v.object({
+        id: v.string(), category: v.union(v.literal("accessibility"), v.literal("bestPractices"), v.literal("performance"), v.literal("seo")),
+        title: v.string(), score: v.number(), displayValue: v.string(), weight: v.number(),
+      })),
+    })),
     workerRequestId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -173,6 +182,7 @@ audit_result: v.object({
       status: "done",
       audit_result: args.audit_result,
       findings: args.findings,
+      report: args.report,
       error: undefined,
       updatedAt: now,
     })

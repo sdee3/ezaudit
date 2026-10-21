@@ -7,6 +7,7 @@ import {
   AlertDialogHeader,
   AlertDialogOverlay,
   AlertIcon,
+  Badge,
   Box,
   Button,
   Flex,
@@ -28,7 +29,7 @@ import { FiFileText } from 'react-icons/fi'
 
 import { AuditResultParsed } from '../../models'
 import { PrintContext } from '../../modules/Print'
-import { ROUTES, scoreLabel, statusNote } from '../../utils'
+import { ROUTES, scoreColorScheme, scoreLabel, statusNote } from '../../utils'
 import { Alert } from '../Alert'
 import { AuthContext } from '../Auth'
 import { ShareAuditURLModal } from './ShareAuditURLModal'
@@ -242,10 +243,18 @@ export const AuditResult = ({
             <Box key={category} py={3} borderTopWidth="1px" borderColor="gray.200">
               <Flex justifyContent="space-between" alignItems="baseline" gap={4}>
                 <Text fontWeight="semibold">{label}</Text>
-                <Text fontWeight="bold">
-                  {score}
-                  {typeof score === 'number' ? ' / 100' : ''}
-                </Text>
+                {typeof score === 'number' ? (
+                  <Badge
+                    colorScheme={scoreColorScheme(score)}
+                    variant={score === 100 ? 'solid' : 'subtle'}
+                    bg={score === 100 ? 'green.700' : undefined}
+                    fontSize="md"
+                    px={2}
+                    py={1}
+                  >
+                    {score} / 100
+                  </Badge>
+                ) : <Text fontWeight="bold">{score}</Text>}
               </Flex>
               <Text fontSize="sm" color="gray.600" mb={2}>
                 {explanation}
@@ -254,9 +263,10 @@ export const AuditResult = ({
                 <Progress
                   value={value}
                   max={100}
-                  colorScheme="blue"
+                  colorScheme={scoreColorScheme(value)}
                   size="sm"
                   aria-label={`${label} score`}
+                  sx={value === 100 ? { '& > div': { bg: 'green.700' } } : undefined}
                 />
               )}
             </Box>

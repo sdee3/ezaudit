@@ -17,6 +17,14 @@ export type Finding = {
 export type RunAuditResult = {
   scores: CategoryScores
   findings: Finding[]
+  report?: {
+    finalUrl: string
+    fetchedAt: string
+    lighthouseVersion: string
+    formFactor: string
+    metrics: { id: string; title: string; value: number; unit: string; displayValue: string }[]
+    checks: { id: string; category: Finding["category"]; title: string; score: number; displayValue: string; weight: number }[]
+  }
   workerRequestId?: string
 }
 
@@ -75,6 +83,19 @@ function isFinding(value: unknown): value is Finding {
   )
 }
 
+function isReport(value: unknown): value is NonNullable<RunAuditResult["report"]> {
+  return isRecord(value) && typeof value.finalUrl === "string" &&
+    typeof value.fetchedAt === "string" && typeof value.lighthouseVersion === "string" &&
+    typeof value.formFactor === "string" && Array.isArray(value.metrics) &&
+    value.metrics.every((metric) => isRecord(metric) && typeof metric.id === "string" &&
+      typeof metric.title === "string" && typeof metric.value === "number" &&
+      typeof metric.unit === "string" && typeof metric.displayValue === "string") &&
+    Array.isArray(value.checks) && value.checks.every((check) => isRecord(check) &&
+      typeof check.id === "string" && ["accessibility", "bestPractices", "performance", "seo"].includes(String(check.category)) &&
+      typeof check.title === "string" && typeof check.score === "number" &&
+      typeof check.displayValue === "string" && typeof check.weight === "number")
+}
+
 export function parseWorkerResponse(body: unknown): RunAuditResult {
   if (!isRecord(body)) {
     throw new Error("Lighthouse worker returned a non-object body")
@@ -92,6 +113,9 @@ export function parseWorkerResponse(body: unknown): RunAuditResult {
   if (!Array.isArray(body.findings) || !body.findings.every(isFinding)) {
     throw new Error("Lighthouse worker response has malformed findings")
   }
+  if (body.report !== undefined && !isReport(body.report)) {
+    throw new Error("Lighthouse worker response has malformed report context")
+  }
   return {
     scores: {
       performance: { score: rawScores.performance.score },
@@ -100,6 +124,7 @@ export function parseWorkerResponse(body: unknown): RunAuditResult {
       seo: { score: rawScores.seo.score },
     },
     findings: body.findings,
+    report: isReport(body.report) ? body.report : undefined,
     workerRequestId: typeof body.requestId === "string" ? body.requestId : undefined,
   }
 }

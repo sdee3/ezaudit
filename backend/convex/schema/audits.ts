@@ -27,6 +27,21 @@ export const auditFindingValidator = v.object({
   suggestedFixes: v.array(v.string()),
 })
 
+export const auditReportValidator = v.object({
+  finalUrl: v.string(),
+  fetchedAt: v.string(),
+  lighthouseVersion: v.string(),
+  formFactor: v.string(),
+  metrics: v.array(v.object({
+    id: v.string(), title: v.string(), value: v.number(), unit: v.string(), displayValue: v.string(),
+  })),
+  checks: v.array(v.object({
+    id: v.string(),
+    category: v.union(v.literal("accessibility"), v.literal("bestPractices"), v.literal("performance"), v.literal("seo")),
+    title: v.string(), score: v.number(), displayValue: v.string(), weight: v.number(),
+  })),
+})
+
 export const auditsTables = {
   audits: defineTable({
     /** identity.subject of the owner, or null for signed-out submissions. */
@@ -43,6 +58,7 @@ export const auditsTables = {
     ),
     audit_result: v.union(auditResultValidator, v.null()),
     findings: v.optional(v.array(auditFindingValidator)),
+    report: v.optional(auditReportValidator),
     guestTokenHash: v.optional(v.string()),
     guestTokenExpiresAt: v.optional(v.number()),
     /** Replaces the legacy 0/1 integer. */

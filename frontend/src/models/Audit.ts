@@ -14,6 +14,14 @@ export interface Audit {
   status: 'queued' | 'running' | 'done' | 'error'
   audit_result: AuditResultCategories | null
   findings?: AuditFinding[]
+  report?: {
+    finalUrl: string
+    fetchedAt: string
+    lighthouseVersion: string
+    formFactor: string
+    metrics: { id: string; title: string; value: number; unit: string; displayValue: string }[]
+    checks: { id: string; category: keyof AuditResultCategories; title: string; score: number; displayValue: string; weight: number }[]
+  }
   is_public: boolean
   /** ms epoch. */
   date_of_request: number

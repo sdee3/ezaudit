@@ -147,10 +147,23 @@ export async function handler(event) {
       return json(502, { error: "Lighthouse returned incomplete scores" })
     }
     const findings = []
+    const checks = []
     for (const category of ["performance", "accessibility", "best-practices", "seo"]) {
       const categoryName = category === "best-practices" ? "bestPractices" : category
       for (const { id } of categories[category].auditRefs) {
         const audit = result.lhr.audits[id]
+        if (typeof audit?.score === "number" && typeof audit.title === "string") {
+          checks.push({
+            id,
+            category: categoryName,
+            title: audit.title,
+            score: audit.score,
+            displayValue: typeof audit.displayValue === "string" ? audit.displayValue : "",
+            weight: typeof categories[category].auditRefs.find((ref) => ref.id === id)?.weight === "number"
+              ? categories[category].auditRefs.find((ref) => ref.id === id).weight
+              : 0,
+          })
+        }
         if (
           typeof audit?.score !== "number" || audit.score >= 1 ||
           typeof audit.title !== "string" || typeof audit.description !== "string"
@@ -167,6 +180,20 @@ export async function handler(event) {
     }
     return json(200, {
       requestId: event.requestContext?.requestId,
+      report: {
+        finalUrl: result.lhr.finalDisplayedUrl || result.lhr.finalUrl || url,
+        fetchedAt: result.lhr.fetchTime,
+        lighthouseVersion: result.lhr.lighthouseVersion,
+        formFactor: result.lhr.configSettings?.formFactor || "unknown",
+        metrics: ["first-contentful-paint", "largest-contentful-paint", "speed-index", "total-blocking-time", "cumulative-layout-shift"]
+          .flatMap((id) => {
+            const audit = result.lhr.audits[id]
+            return typeof audit?.numericValue === "number"
+              ? [{ id, title: audit.title, value: audit.numericValue, unit: audit.numericUnit || "", displayValue: audit.displayValue || "" }]
+              : []
+          }),
+        checks,
+      },
       scores: {
         performance: { score: categories.performance.score },
         accessibility: { score: categories.accessibility.score },

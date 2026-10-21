@@ -25,6 +25,10 @@ export const scoreLabel = (
     ? audit.status === 'done' ? '—' : STATUS_LABEL[audit.status]
     : Math.ceil(audit.audit_result[category].score * 100)
 
+/** Lighthouse colors: red below 50, amber below 90, and green from 90. */
+export const scoreColorScheme = (score: number): 'red' | 'orange' | 'green' =>
+  score < 50 ? 'red' : score < 90 ? 'orange' : 'green'
+
 /** One sentence that explains the status on the audit page. Null when no note is needed. */
 export const statusNote = (
   status: AuditResultParsed['status'],

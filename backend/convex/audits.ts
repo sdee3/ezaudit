@@ -220,6 +220,8 @@ export const retry = mutation({
       retryCycle: cycle + 1,
       status: "queued",
       audit_result: null,
+      findings: undefined,
+      report: undefined,
       error: undefined,
       updatedAt: Date.now(),
     })
