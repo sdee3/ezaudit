@@ -5,6 +5,24 @@ import { ApiResponse, HomeAuditInputValues } from '../../../models'
 const SUBMITTED_MESSAGE =
   "Audit submitted! We'll email the results when it's ready."
 
+const auditHostname = (domain: string) => {
+  try {
+    return new URL(domain.includes('://') ? domain : `https://${domain}`)
+      .hostname.toLowerCase()
+      .replace(/^www\./, '')
+  } catch {
+    return domain.trim().toLowerCase()
+  }
+}
+
+export const existingAuditForDomain = <T extends { _id: string; domain: string }>(
+  audits: readonly T[],
+  domain: string
+): T | undefined => {
+  const hostname = auditHostname(domain)
+  return audits.find(audit => auditHostname(audit.domain) === hostname)
+}
+
 export const reportHref = (auditId: unknown, isSignedIn: boolean, guestToken?: unknown) => {
   if (typeof auditId !== 'string') return null
   if (isSignedIn) return `/dashboard/audits/${auditId}`
@@ -24,7 +42,6 @@ export const submitAuditForm = async (
   try {
     const { auditId, guestToken } = await submitAudit(values)
     setFormFieldValue('domain', '')
-    setFormFieldValue('email', '')
     return { status: 202, message: SUBMITTED_MESSAGE, auditId, guestToken }
   } catch (error) {
     return {

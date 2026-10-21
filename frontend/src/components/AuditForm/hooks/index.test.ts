@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { reportHref, submitAuditForm } from './submission'
+import { existingAuditForDomain, reportHref, submitAuditForm } from './submission'
 import { HomeAuditInputValues } from '../../../models'
 
 const values: HomeAuditInputValues = {
@@ -11,6 +11,16 @@ const values: HomeAuditInputValues = {
 const createSetValue = () => vi.fn()
 
 describe('submitAuditForm', () => {
+  it('finds an existing audit for the same hostname', () => {
+    const audits = [
+      { _id: 'audit-1', domain: 'https://www.example.com/old-path' },
+      { _id: 'audit-2', domain: 'other.example' },
+    ]
+
+    expect(existingAuditForDomain(audits, 'example.com/new-path')?._id).toBe('audit-1')
+    expect(existingAuditForDomain(audits, 'different.example')).toBeUndefined()
+  })
+
   it('shows a report path only for a signed-in owner', () => {
     expect(reportHref('audit-123', true)).toBe('/dashboard/audits/audit-123')
     expect(reportHref('audit-123', false)).toBeNull()
@@ -45,6 +55,7 @@ describe('submitAuditForm', () => {
     expect(result).toMatchObject({ status: 202, auditId: 'audit-123' })
     expect(setValue).toHaveBeenCalledOnce()
     expect(setValue).toHaveBeenCalledWith('domain', '')
+    expect(setValue).not.toHaveBeenCalledWith('email', '')
   })
 
   it('keeps fields after a failed mutation', async () => {

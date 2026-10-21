@@ -7,9 +7,9 @@ import type { Id } from 'convex/_generated/dataModel'
 export interface Audit {
   _id: Id<'audits'>
   _creationTime: number
-  /** identity.subject of the owner, or null for signed-out submissions. */
-  userId: string | null
-  email: string
+  /** identity.subject of the owner, or null for historical ownerless rows. */
+  userId?: string | null
+  email?: string
   domain: string
   status: 'queued' | 'running' | 'done' | 'error'
   audit_result: AuditResultCategories | null

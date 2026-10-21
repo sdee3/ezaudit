@@ -86,15 +86,7 @@ const AuditsIndex = () => {
                   cursor="pointer"
                   role="link"
                   tabIndex={0}
-                  onClick={() => {
-                    const openExistingAudit = window.confirm(
-                      `Open the existing audit for ${audit.domain}? The restart option will be highlighted when available.`
-                    )
-
-                    if (openExistingAudit) {
-                      navigate(`${ROUTES.audit(audit._id)}?highlightRestart=1`)
-                    }
-                  }}
+                  onClick={() => navigate(ROUTES.audit(audit._id))}
                   onKeyDown={event => {
                     if (event.key === 'Enter') {
                       event.preventDefault()
