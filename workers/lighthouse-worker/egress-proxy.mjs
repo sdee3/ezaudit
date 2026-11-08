@@ -38,6 +38,16 @@ async function publicAddress(hostname) {
   return (await resolvePublicAddresses(hostname))[0]
 }
 
+function upstreamProxy() {
+  const value = process.env.LIGHTHOUSE_EGRESS_PROXY_URL
+  if (!value) return undefined
+  const proxy = new URL(value)
+  if (proxy.protocol !== "http:" || proxy.username || proxy.password) {
+    throw new Error("egress proxy must be an unauthenticated HTTP URL")
+  }
+  return proxy
+}
+
 function sendError(socket, status, message) {
   if (socket.destroyed) return
   socket.end(`HTTP/1.1 ${status} ${message}\r\nConnection: close\r\n\r\n`)
@@ -52,13 +62,14 @@ export async function startEgressProxy() {
       const address = await publicAddress(url.hostname)
       const port = Number(url.port || (url.protocol === "https:" ? 443 : 80))
       if (port !== 80) throw new Error("only public web ports are allowed")
+      const proxy = upstreamProxy()
       const upstream = http.request({
-        hostname: address,
-        family: net.isIP(address),
-        port,
+        hostname: proxy?.hostname || address,
+        family: proxy ? undefined : net.isIP(address),
+        port: proxy ? Number(proxy.port || 80) : port,
         method: request.method,
-        path: `${url.pathname}${url.search}`,
-        headers: { ...request.headers, host: url.host },
+        path: proxy ? request.url : `${url.pathname}${url.search}`,
+        headers: proxy ? request.headers : { ...request.headers, host: url.host },
       }, (upstreamResponse) => {
         response.writeHead(upstreamResponse.statusCode, upstreamResponse.headers)
         upstreamResponse.pipe(response)
@@ -77,15 +88,36 @@ export async function startEgressProxy() {
       const address = await publicAddress(target.hostname)
       const port = Number(target.port || 443)
       if (port !== 443) throw new Error("only public web ports are allowed")
-      const upstream = net.connect({ host: address, family: net.isIP(address), port })
-      upstream.on("connect", () => {
+      const proxy = upstreamProxy()
+      const openTunnel = (upstream) => {
         client.write("HTTP/1.1 200 Connection Established\r\n\r\n")
         if (head.length) upstream.write(head)
         upstream.pipe(client)
         client.pipe(upstream)
-      })
-      upstream.on("error", () => client.destroy())
-      client.on("error", () => upstream.destroy())
+        upstream.on("error", () => client.destroy())
+        client.on("error", () => upstream.destroy())
+      }
+      if (proxy) {
+        const connect = http.request({
+          hostname: proxy.hostname,
+          port: Number(proxy.port || 80),
+          method: "CONNECT",
+          path: request.url,
+        })
+        connect.once("connect", (response, upstream) => {
+          if (response.statusCode !== 200) {
+            client.destroy()
+            upstream.destroy()
+            return
+          }
+          openTunnel(upstream)
+        })
+        connect.on("error", () => client.destroy())
+        connect.end()
+      } else {
+        const upstream = net.connect({ host: address, family: net.isIP(address), port })
+        upstream.on("connect", () => openTunnel(upstream))
+      }
     } catch {
       sendError(client, 403, "Forbidden")
     }

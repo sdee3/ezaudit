@@ -34,7 +34,7 @@ the archived UI.
 
 | Layer | Choice | Verified |
 |-------|--------|----------|
-| Runtime | Node >= 20 (match sibling repos) | ✅ root `package.json` `engines.node: ">=20"`; CI pins Node 20 |
+| Runtime | Node >= 24.15 (match sibling repos) | ✅ root `package.json` `engines.node: ">=24.15.0"`; CI pins Node 24 |
 | Package manager | pnpm (single root workspace) | ✅ `packageManager: pnpm@12.6.0`, `pnpm-workspace.yaml` |
 | Frontend build | Vite | ✅ `vite ^8.3.4` + rolldown config; `pnpm build` runs clean |
 | Language | TypeScript (strict on new code) | ✅ strict in `frontend/tsconfig.json`, `backend/tsconfig.json`, backend typecheck project |

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Provision the Lighthouse Lambda worker and its dedicated Convex caller.
-# This script is idempotent. A second run changes nothing.
-# This script never creates access keys and never stores secrets.
+# Legacy standalone bootstrap for the production worker.
+# It does not configure the private VPC or Squid egress proxy.
+# Use the Terraform stack for new deployments and managed changes.
 set -euo pipefail
 
 ACCOUNT_ID="${ACCOUNT_ID:-319777330480}"
@@ -91,6 +91,27 @@ cat > "${TMP_DIR}/caller-policy.json" <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
+    {
+      "Sid": "DenyInvokeOutsideConvexRanges",
+      "Effect": "Deny",
+      "Action": [
+        "lambda:InvokeFunctionUrl",
+        "lambda:InvokeFunction"
+      ],
+      "Resource": "${FUNCTION_ARN}",
+      "Condition": {
+        "NotIpAddress": {
+          "aws:SourceIp": [
+            "216.235.222.0/24",
+            "2600:1f18:77e:2300::/56",
+            "2600:1f10:4a09:7c00::/56"
+          ]
+        },
+        "Bool": {
+          "aws:PrincipalIsAWSService": "false"
+        }
+      }
+    },
     {
       "Sid": "InvokeOnlyThisFunctionUrl",
       "Effect": "Allow",

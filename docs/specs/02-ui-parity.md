@@ -40,7 +40,7 @@ Routes themselves are pinned by `frontend/src/smoke.test.ts` ✅.
 | Source | Target | Notes |
 |---|---|---|
 | `components/Alert/Alert.tsx` + `hooks` | same ✅ | optional close; hooks byte-identical; `data-cy="alert"` dropped |
-| `components/AuditForm/AuditForm.tsx` + `hooks` | same ✅ | react-hook-form, regex validation, alert on submit; submit goes to Convex `api.audits.submit` (`2c884dd`); email prefilled from auth context |
+| `components/AuditForm/AuditForm.tsx` + `hooks` | updated | signed-in users submit with their verified email; signed-out visitors get a sign-in link; submit goes to Convex `api.audits.submit` |
 | `components/AuditResult/AuditResult.tsx` | same ✅ | owner vs public rendering, options block; scores render `—` while `audit_result` is null |
 | `components/AuditResult/ShareAuditURLModal.tsx` | same ✅ | clipboard copy modal; byte-identical |
 | `components/Auth/AuthWrapper.tsx` | ❌ not ported | tabbed in-place login/register/reset replaced by the `/sign-in` hub handoff + `/sso-callback`; registration and forgot-password happen at the hub |

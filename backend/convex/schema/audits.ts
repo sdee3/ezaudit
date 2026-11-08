@@ -44,9 +44,9 @@ export const auditReportValidator = v.object({
 
 export const auditsTables = {
   audits: defineTable({
-    /** identity.subject of the owner, or null for signed-out submissions. */
+    /** identity.subject of the owner, or null for historical ownerless rows. */
     userId: v.union(v.string(), v.null()),
-    /** Submission email (may differ from the Clerk email for logged-out audits). */
+    /** Verified owner email for new submissions. */
     email: v.string(),
     /** Audited URL. */
     domain: v.string(),
@@ -76,4 +76,10 @@ export const auditsTables = {
     .index("by_userId_and_date", ["userId", "date_of_request"])
     .index("by_public_and_date", ["is_public", "date_of_request"])
     .index("by_status", ["status"]),
+
+  auditSubmitRateLimits: defineTable({
+    key: v.string(),
+    windowStart: v.number(),
+    count: v.number(),
+  }).index("by_key", ["key"]),
 }
