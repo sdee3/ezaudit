@@ -118,7 +118,7 @@ normalized email. The limits are 100 global submissions, 5 per user, and 3 per e
 |---|---|---|---|
 | `audits.submit` | mutation | required + verified email | validate domain and email ownership, apply hourly global, user, and email limits, insert a queued audit, then schedule `auditPipeline.run` |
 | `audits.listMine` | query | required | owner's audits, newest first via `by_userId_and_date` (drives the table) |
-| `audits.get` | query | optional | one audit; public if `is_public`, else owner-only; public output omits email and userId; returns `null` for missing and forbidden rows |
+| `audits.get` | query | optional | one audit; public if `is_public`, else owner-only; public output omits email, and omits userId except for the owner; returns `null` for missing and forbidden rows |
 | `audits.setVisibility` | mutation | required + owner | toggle `is_public` (replaces the legacy PUT status endpoint); throws `Not found` for non-owners |
 | `auditPipeline.run` | internalAction | internal | call Lighthouse worker, persist result, set status, send email |
 | `auditPipeline.retry` | internalAction | internal | bounded retry on worker failure (max 3 attempts total, 5 s × attempt backoff scheduled from within the failed attempt) |

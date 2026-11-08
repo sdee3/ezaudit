@@ -166,11 +166,13 @@ export const get = query({
     if (audit === null) {
       return null
     }
-    if (audit.is_public) {
-      return withoutPrivateOwnerFields(audit)
-    }
     const userId = await getOptionalUserId(ctx)
-    if (userId !== null && audit.userId === userId) {
+    const isOwner = userId !== null && audit.userId === userId
+    if (audit.is_public) {
+      const report = withoutPrivateOwnerFields(audit)
+      return isOwner ? { ...report, userId: audit.userId } : report
+    }
+    if (isOwner) {
       return withoutGuestSecret(audit)
     }
     return null

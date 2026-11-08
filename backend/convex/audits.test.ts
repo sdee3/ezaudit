@@ -246,6 +246,16 @@ test("get serves public audits to anyone and private audits only to the owner", 
   const publicAudit = await t.query(api.audits.get, { id: publicId as Id<"audits"> })
   expect(publicAudit).not.toHaveProperty("email")
   expect(publicAudit).not.toHaveProperty("userId")
+  const ownerPublicAudit = await t.withIdentity({ subject: "user_2" }).query(api.audits.get, {
+    id: publicId as Id<"audits">,
+  })
+  expect(ownerPublicAudit).toMatchObject({ userId: "user_2", is_public: true })
+  expect(ownerPublicAudit).not.toHaveProperty("email")
+  const otherPublicAudit = await t.withIdentity({ subject: "user_1" }).query(api.audits.get, {
+    id: publicId as Id<"audits">,
+  })
+  expect(otherPublicAudit).not.toHaveProperty("email")
+  expect(otherPublicAudit).not.toHaveProperty("userId")
   expect(await t.query(api.audits.get, { id: privateId as Id<"audits"> })).toBeNull()
 
   // other users: private not readable
