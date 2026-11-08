@@ -35,14 +35,13 @@ test("rejects an unset authentication mode", async () => {
   assert.equal(response.statusCode, 503)
 })
 
-test("rejects IAM mode without an egress proxy", async () => {
+test("allows IAM mode without an egress proxy", async () => {
   setEnv({
     LIGHTHOUSE_AUTH_MODE: "iam",
     LIGHTHOUSE_ALLOWED_CALLER_ARN: "arn:aws:iam::123456789012:user/convex",
   })
   const response = await handler({ requestContext: { http: { method: "POST" } } })
-  assert.equal(response.statusCode, 503)
-  assert.match(response.body, /egress proxy is not configured/)
+  assert.equal(response.statusCode, 401)
 })
 
 test("rejects direct invocation events without an HTTP method", async () => {

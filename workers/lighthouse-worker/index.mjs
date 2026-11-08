@@ -57,9 +57,6 @@ export async function handler(event) {
   if (authMode === "iam" && !process.env.LIGHTHOUSE_ALLOWED_CALLER_ARN) {
     return json(503, { error: "allowed IAM caller ARN is not configured" })
   }
-  if (authMode === "iam" && !process.env.LIGHTHOUSE_EGRESS_PROXY_URL) {
-    return json(503, { error: "egress proxy is not configured" })
-  }
   if (authMode === "bearer" && !process.env.LIGHTHOUSE_WORKER_SECRET) {
     return json(503, { error: "worker secret is not configured" })
   }

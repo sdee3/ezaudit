@@ -1,12 +1,9 @@
 # Lighthouse worker deployment
 
-Terraform manages the worker, caller users, Function URLs, VPC, and Squid proxy in the
+Terraform manages the worker, the caller user, and the Function URL in the
 [infrastructure stack](../../../infrastructure/aws/ezaudit). The worker runs in `us-east-1` as an arm64 Lambda
 container. It uses 2048 MB, a 120-second timeout, reserved concurrency of 4, and
-`AWS_IAM`. Its execution role needs `AWSLambdaVPCAccessExecutionRole`.
-
-Terraform sets `LIGHTHOUSE_EGRESS_PROXY_URL` to the proxy's private address. The
-worker's local proxy sends checked HTTP requests and HTTPS tunnels to Squid.
+`AWS_IAM`. It is not attached to a VPC.
 
 One deployed audit measured 11.9 seconds cold and 8.7 seconds warm at 2048 MB.
 Peak memory was 949 MB.
@@ -19,7 +16,6 @@ Set these Lambda environment variables:
 |---|---|
 | `LIGHTHOUSE_AUTH_MODE` | `iam` |
 | `LIGHTHOUSE_ALLOWED_CALLER_ARN` | Exact IAM user ARN for the Convex caller |
-| `LIGHTHOUSE_EGRESS_PROXY_URL` | `http://<proxy-private-ip>:3128` from Terraform |
 
 Do not set `LIGHTHOUSE_WORKER_SECRET` in IAM mode. Local bearer proof uses
 `LIGHTHOUSE_AUTH_MODE=bearer` and `LIGHTHOUSE_WORKER_SECRET` instead.
